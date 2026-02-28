@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Peixes{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+    <h1 class="h4 mb-0">Peixes cadastrados</h1>
+    {% if logged_user_id %}
+        <a href="{{ url_for('adicionar_peixe') }}" class="btn btn-primary btn-sm mobile-full-btn">Novo peixe</a>
+    {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm mobile-full-btn">Faça login para cadastrar</a>
+    {% endif %}
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-6">
+                <label for="q" class="form-label mb-1">Buscar por nome comum</label>
+                <input type="text" class="form-control" id="q" name="q" placeholder="Ex: Tilápia" value="{{ q }}">
+            </div>
+            <div class="col-12 col-md-4">
+                <label for="regiao" class="form-label mb-1">Filtrar por região</label>
+                <select class="form-select" id="regiao" name="regiao">
+                    <option value="">Todas as regiões</option>
+                    {% for regiao in regioes %}
+                        <option value="{{ regiao }}" {% if regiao == regiao_selecionada %}selected{% endif %}>{{ regiao }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Aplicar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if peixes %}
+    <div class="row g-3">
+        {% for peixe in peixes %}
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm fish-card">
+                    <img src="{{ url_for('static', filename='uploads/' ~ peixe['foto']) }}" class="card-img-top fish-card-image" alt="Foto de {{ peixe['nome_comum'] }}">
+                    <div class="card-body">
+                        <h2 class="h5 card-title mb-1">{{ peixe['nome_comum'] }}</h2>
+                        <p class="text-muted mb-2"><em>{{ peixe['nome_cientifico'] }}</em></p>
+                        <p class="mb-2"><strong>Região:</strong> {{ peixe['regiao'] }}</p>
+                        <p class="card-text mb-2">{{ peixe['descricao'] }}</p>
+                        <small class="text-muted d-block">Cadastrado por: {{ peixe['usuario_nome'] }}</small>
+                        <small class="text-muted">Data: {{ peixe['data_postagem'] }}</small>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info mb-0" role="alert">
+        Nenhum peixe encontrado para os filtros informados.
+    </div>
+{% endif %}
+{% endblock %}

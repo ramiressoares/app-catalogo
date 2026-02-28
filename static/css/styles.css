@@ -1,0 +1,45 @@
+/* Ajustes de responsividade mobile-first para o Catálogo de Peixes */
+
+.fish-card-image {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+}
+
+.mobile-full-btn,
+.nav-action-btn {
+    width: 100%;
+}
+
+@media (max-width: 991.98px) {
+    .navbar-nav .nav-link {
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+    }
+
+    .navbar-nav .nav-item {
+        width: 100%;
+    }
+}
+
+@media (min-width: 576px) {
+    .mobile-full-btn {
+        width: auto;
+    }
+}
+
+@media (min-width: 992px) {
+    .nav-action-btn {
+        width: auto;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .fish-card-image {
+        height: 200px;
+    }
+
+    .card-body {
+        padding: 0.9rem;
+    }
+}
