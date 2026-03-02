@@ -1,36 +1,63 @@
-{% extends 'base.html' %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #0d6efd 0%, #2f80ed 45%, #56ccf2 100%);">
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <div class="card border-0 shadow-lg">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-12 col-lg-7">
+                                <p class="text-uppercase text-primary fw-semibold mb-2" style="letter-spacing: 0.08em;">Bem-vindo ao Catálogo de Peixes</p>
+                                <h1 class="display-6 fw-bold mb-3">Preservar a biodiversidade aquática é cuidar da vida em cada rio, lago e oceano.</h1>
+                                <p class="text-muted mb-0">Faça login para explorar espécies, registrar novas descobertas e fortalecer a proteção dos ecossistemas aquáticos.</p>
+                            </div>
 
-{% block title %}Login{% endblock %}
+                            <div class="col-12 col-lg-5">
+                                <h2 class="h4 text-center mb-4">Entrar</h2>
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-md-7 col-lg-5">
-        <div class="card shadow-sm">
-            <div class="card-body p-3 p-md-4">
-                <h1 class="h4 mb-3">Entrar</h1>
+                                {% with messages = get_flashed_messages(with_categories=true) %}
+                                    {% if messages %}
+                                        {% for category, message in messages %}
+                                            <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endwith %}
 
-                <form method="post" class="row g-3">
-                    <div class="col-12">
-                        <label for="email" class="form-label">E-mail</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                                <form method="post" class="row g-3">
+                                    <div class="col-12">
+                                        <label for="email" class="form-label">E-mail</label>
+                                        <input type="email" class="form-control form-control-lg" id="email" name="email" required>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label for="senha" class="form-label">Senha</label>
+                                        <input type="password" class="form-control form-control-lg" id="senha" name="senha" required>
+                                    </div>
+
+                                    <div class="col-12 d-grid mt-2">
+                                        <button type="submit" class="btn btn-primary btn-lg">Entrar</button>
+                                    </div>
+                                </form>
+
+                                <p class="text-center mt-4 mb-0 text-muted">
+                                    Não tem conta?
+                                    <a href="{{ url_for('registrar') }}" class="fw-semibold text-decoration-none">Crie uma conta</a>
+                                </p>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="col-12">
-                        <label for="senha" class="form-label">Senha</label>
-                        <input type="password" class="form-control" id="senha" name="senha" required>
-                    </div>
-
-                    <div class="col-12 d-grid">
-                        <button type="submit" class="btn btn-primary">Login</button>
-                    </div>
-                </form>
-
-                <p class="mt-3 mb-0 text-muted">
-                    Não tem conta?
-                    <a href="{{ url_for('registrar') }}">Crie uma conta</a>
-                </p>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>

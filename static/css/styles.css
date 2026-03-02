@@ -1,5 +1,40 @@
 /* Ajustes de responsividade mobile-first para o Catálogo de Peixes */
 
+.hero-aquatico {
+    border-radius: 1rem;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0d6efd 0%, #2f80ed 50%, #56ccf2 100%);
+    box-shadow: 0 0.75rem 2rem rgba(13, 110, 253, 0.25);
+}
+
+.hero-aquatico-overlay {
+    padding: 2rem 1.25rem;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.25));
+    color: #fff;
+}
+
+.hero-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.hero-title {
+    font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+    line-height: 1.25;
+    font-weight: 700;
+    max-width: 900px;
+}
+
+.hero-subtitle {
+    font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+    line-height: 1.6;
+    max-width: 760px;
+    opacity: 0.95;
+}
+
 .fish-card-image {
     width: 100%;
     height: 220px;
@@ -35,6 +70,10 @@
 }
 
 @media (max-width: 575.98px) {
+    .hero-aquatico-overlay {
+        padding: 1.5rem 1rem;
+    }
+
     .fish-card-image {
         height: 200px;
     }

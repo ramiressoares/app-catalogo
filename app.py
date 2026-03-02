@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import List
 from uuid import uuid4
@@ -17,6 +17,9 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 
 # Extensões de imagem permitidas para upload
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+DELETE_WINDOW_MINUTES = 20
+ADMIN_USER_IDS = {1}
+ADMIN_EMAILS = {email.strip().lower() for email in os.getenv("ADMIN_EMAILS", "").split(",") if email.strip()}
 
 
 app = Flask(__name__)
@@ -102,17 +105,52 @@ def allowed_file(filename: str) -> bool:
 	return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def login_required(view_func):
-	"""Decorator para proteger rotas que exigem autenticação."""
+def is_admin_user(user_id: int) -> bool:
+	if not user_id:
+		return False
 
-	@wraps(view_func)
-	def wrapped_view(*args, **kwargs):
+	if user_id in ADMIN_USER_IDS:
+		return True
+
+	if not ADMIN_EMAILS:
+		return False
+
+	with get_db_connection() as conn:
+		user = conn.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+
+	if not user:
+		return False
+
+	return user["email"].strip().lower() in ADMIN_EMAILS
+
+
+def is_within_delete_window(data_postagem: str) -> bool:
+	try:
+		post_date = datetime.strptime(data_postagem, "%Y-%m-%d %H:%M:%S")
+	except ValueError:
+		return False
+
+	deadline = post_date + timedelta(minutes=DELETE_WINDOW_MINUTES)
+	return datetime.now() <= deadline
+
+
+def can_delete_peixe(current_user_id: int, peixe_user_id: int, data_postagem: str) -> bool:
+	if is_admin_user(current_user_id):
+		return True
+
+	if current_user_id != peixe_user_id:
+		return False
+
+	return is_within_delete_window(data_postagem)
+
+
+def login_required(f):
+	@wraps(f)
+	def decorated_function(*args, **kwargs):
 		if "user_id" not in session:
-			flash("Faça login para acessar esta funcionalidade.", "warning")
 			return redirect(url_for("login"))
-		return view_func(*args, **kwargs)
-
-	return wrapped_view
+		return f(*args, **kwargs)
+	return decorated_function
 
 
 @app.context_processor
@@ -125,6 +163,14 @@ def inject_logged_user():
 
 
 @app.route("/")
+def boas_vindas():
+	if "user_id" in session:
+		return redirect(url_for("index"))
+	return redirect(url_for("login"))
+
+
+@app.route("/inicio")
+@login_required
 def index():
 	"""Página inicial com listagem geral, busca por nome e filtro por região."""
 	q = request.args.get("q", "").strip()
@@ -138,6 +184,7 @@ def index():
 		p.regiao,
 		p.descricao,
 		p.foto,
+		p.user_id,
 		p.data_postagem,
 		u.nome AS usuario_nome
 	FROM peixes p
@@ -157,8 +204,19 @@ def index():
 	query += " ORDER BY datetime(p.data_postagem) DESC"
 
 	with get_db_connection() as conn:
-		peixes = conn.execute(query, params).fetchall()
+		peixes_db = conn.execute(query, params).fetchall()
 		regioes = conn.execute("SELECT DISTINCT regiao FROM peixes ORDER BY regiao").fetchall()
+
+	current_user_id = session.get("user_id")
+	current_user_is_admin = is_admin_user(current_user_id)
+	peixes = []
+
+	for peixe in peixes_db:
+		peixe_dict = dict(peixe)
+		peixe_dict["is_owner"] = peixe_dict["user_id"] == current_user_id
+		peixe_dict["can_delete"] = can_delete_peixe(current_user_id, peixe_dict["user_id"], peixe_dict["data_postagem"])
+		peixe_dict["delete_window_expired"] = peixe_dict["is_owner"] and not current_user_is_admin and not is_within_delete_window(peixe_dict["data_postagem"])
+		peixes.append(peixe_dict)
 
 	return render_template(
 		"index.html",
@@ -228,6 +286,36 @@ def logout():
 	"""Finaliza a sessão atual."""
 	session.clear()
 	flash("Você saiu da sua conta.", "info")
+	return redirect(url_for("boas_vindas"))
+
+
+@app.route("/peixes/<int:peixe_id>/deletar", methods=["POST"])
+@login_required
+def deletar_peixe(peixe_id: int):
+	current_user_id = session.get("user_id")
+
+	with get_db_connection() as conn:
+		peixe = conn.execute(
+			"SELECT id, user_id, foto, data_postagem FROM peixes WHERE id = ?",
+			(peixe_id,),
+		).fetchone()
+
+		if not peixe:
+			flash("Peixe não encontrado.", "warning")
+			return redirect(url_for("index"))
+
+		if not can_delete_peixe(current_user_id, peixe["user_id"], peixe["data_postagem"]):
+			flash("Você só pode excluir sua foto em até 20 minutos após a postagem. Depois disso, apenas administrador.", "danger")
+			return redirect(url_for("index"))
+
+		conn.execute("DELETE FROM peixes WHERE id = ?", (peixe_id,))
+		conn.commit()
+
+	foto_path = os.path.join(app.config["UPLOAD_FOLDER"], peixe["foto"])
+	if os.path.exists(foto_path):
+		os.remove(foto_path)
+
+	flash("Foto removida com sucesso.", "success")
 	return redirect(url_for("index"))
 
 
@@ -240,7 +328,7 @@ def adicionar_peixe():
 		nome_cientifico = request.form.get("nome_cientifico", "").strip()
 		regiao = request.form.get("regiao", "").strip()
 		descricao = request.form.get("descricao", "").strip()
-		arquivo = request.files.get("imagem")
+		arquivo = request.files.get("foto") or request.files.get("imagem") or request.files.get("emagen")
 
 		if not all([nome_comum, nome_cientifico, regiao, descricao]):
 			flash("Preencha todos os campos de texto.", "danger")

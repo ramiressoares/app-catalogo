@@ -3,8 +3,16 @@
 {% block title %}Lista de Peixes{% endblock %}
 
 {% block content %}
+<section class="hero-aquatico mb-4 mb-md-5">
+    <div class="hero-aquatico-overlay">
+        <p class="hero-kicker mb-2">Catálogo de Peixes</p>
+        <h1 class="hero-title mb-3">Cada espécie preservada é um capítulo vivo da história dos nossos rios e oceanos.</h1>
+        <p class="hero-subtitle mb-0">Preservar a biodiversidade aquática é proteger o equilíbrio da vida, hoje e para as próximas gerações.</p>
+    </div>
+</section>
+
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-    <h1 class="h4 mb-0">Peixes cadastrados</h1>
+    <h2 class="h4 mb-0">Peixes cadastrados</h2>
     {% if logged_user_id %}
         <a href="{{ url_for('adicionar_peixe') }}" class="btn btn-primary btn-sm mobile-full-btn">Novo peixe</a>
     {% else %}
@@ -48,6 +56,14 @@
                         <p class="card-text mb-2">{{ peixe['descricao'] }}</p>
                         <small class="text-muted d-block">Cadastrado por: {{ peixe['usuario_nome'] }}</small>
                         <small class="text-muted">Data: {{ peixe['data_postagem'] }}</small>
+
+                        {% if peixe['can_delete'] %}
+                            <form method="post" action="{{ url_for('deletar_peixe', peixe_id=peixe['id']) }}" class="mt-2" onsubmit="return confirm('Deseja excluir esta foto?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm w-100">Excluir foto</button>
+                            </form>
+                        {% elif peixe['delete_window_expired'] %}
+                            <small class="text-muted d-block mt-2">Prazo de 20 minutos expirado. Apenas administrador pode excluir agora.</small>
+                        {% endif %}
                     </div>
                 </div>
             </div>
