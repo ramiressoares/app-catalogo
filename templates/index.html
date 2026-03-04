@@ -44,12 +44,13 @@
 </div>
 
 {% if peixes %}
-    <div class="row g-3">
+    <div class="fish-grid" id="fishGrid">
         {% for peixe in peixes %}
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm fish-card">
-                    <img src="{{ url_for('static', filename='uploads/' ~ peixe['foto']) }}" class="card-img-top fish-card-image" alt="Foto de {{ peixe['nome_comum'] }}">
-                    <div class="card-body">
+            <article class="fish-card">
+                <button type="button" class="fish-image-button" data-fish-image="{{ url_for('static', filename='uploads/' ~ peixe['foto']) }}" data-fish-name="{{ peixe['nome_comum'] }}" aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
+                    <img src="{{ url_for('static', filename='uploads/' ~ peixe['foto']) }}" class="fish-card-image" alt="Foto de {{ peixe['nome_comum'] }}">
+                </button>
+                <div class="card-body fish-card-body">
                         <h2 class="h5 card-title mb-1">{{ peixe['nome_comum'] }}</h2>
                         <p class="text-muted mb-2"><em>{{ peixe['nome_cientifico'] }}</em></p>
                         <p class="mb-2"><strong>Região:</strong> {{ peixe['regiao'] }}</p>
@@ -64,14 +65,72 @@
                         {% elif peixe['delete_window_expired'] %}
                             <small class="text-muted d-block mt-2">Prazo de 20 minutos expirado. Apenas administrador pode excluir agora.</small>
                         {% endif %}
-                    </div>
                 </div>
-            </div>
+            </article>
         {% endfor %}
+    </div>
+
+    <div class="fish-modal" id="fishImageModal" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="fish-modal-content" role="document">
+            <button type="button" class="fish-modal-close" id="fishModalClose" aria-label="Fechar visualizador">&times;</button>
+            <img src="" alt="Imagem ampliada do peixe" id="fishModalImage" class="fish-modal-image">
+        </div>
     </div>
 {% else %}
     <div class="alert alert-info mb-0" role="alert">
         Nenhum peixe encontrado para os filtros informados.
     </div>
 {% endif %}
+
+<script>
+    (function () {
+        const modal = document.getElementById('fishImageModal');
+        const modalImage = document.getElementById('fishModalImage');
+        const closeButton = document.getElementById('fishModalClose');
+        const imageButtons = document.querySelectorAll('.fish-image-button');
+
+        if (!modal || !modalImage || !closeButton || !imageButtons.length) {
+            return;
+        }
+
+        function openModal(src, name) {
+            modalImage.src = src;
+            modalImage.alt = 'Imagem ampliada de ' + name;
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeModal() {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            modalImage.src = '';
+            document.body.classList.remove('modal-open');
+        }
+
+        imageButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                const src = button.getAttribute('data-fish-image');
+                const name = button.getAttribute('data-fish-name') || 'peixe';
+                if (src) {
+                    openModal(src, name);
+                }
+            });
+        });
+
+        closeButton.addEventListener('click', closeModal);
+
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+                closeModal();
+            }
+        });
+    })();
+</script>
 {% endblock %}
