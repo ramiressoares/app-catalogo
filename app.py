@@ -25,12 +25,34 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 app.secret_key = "catalogo-peixes-secret"
 
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+
+
+def get_missing_cloudinary_vars() -> List[str]:
+	missing = []
+	if not CLOUDINARY_CLOUD_NAME:
+		missing.append("CLOUDINARY_CLOUD_NAME")
+	if not CLOUDINARY_API_KEY:
+		missing.append("CLOUDINARY_API_KEY")
+	if not CLOUDINARY_API_SECRET:
+		missing.append("CLOUDINARY_API_SECRET")
+	return missing
+
 cloudinary.config(
-	cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-	api_key=os.getenv("CLOUDINARY_API_KEY"),
-	api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+	cloud_name=CLOUDINARY_CLOUD_NAME,
+	api_key=CLOUDINARY_API_KEY,
+	api_secret=CLOUDINARY_API_SECRET,
 	secure=True,
 )
+
+missing_cloudinary_vars = get_missing_cloudinary_vars()
+if missing_cloudinary_vars:
+	app.logger.warning(
+		"Cloudinary desconfigurado. Variaveis ausentes: %s",
+		", ".join(missing_cloudinary_vars),
+	)
 
 
 def get_db_connection() -> sqlite3.Connection:
@@ -395,9 +417,16 @@ def adicionar_peixe():
 			flash("Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
+		missing_vars = get_missing_cloudinary_vars()
+		if missing_vars:
+			app.logger.error("Upload bloqueado: Cloudinary sem configuracao. Variaveis ausentes: %s", ", ".join(missing_vars))
+			flash("Configuracao de upload ausente no servidor (Cloudinary).", "danger")
+			return redirect(url_for("adicionar_peixe"))
+
 		try:
 			upload_result = cloudinary.uploader.upload(arquivo)
-		except Exception:
+		except Exception as exc:
+			app.logger.exception("Erro ao enviar imagem para o Cloudinary: %s", exc)
 			flash("Nao foi possivel enviar a imagem para o Cloudinary. Tente novamente.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
