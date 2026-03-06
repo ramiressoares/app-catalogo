@@ -47,8 +47,8 @@
     <div class="fish-grid" id="fishGrid">
         {% for peixe in peixes %}
             <article class="fish-card">
-                <button type="button" class="fish-image-button" data-fish-image="{{ url_for('static', filename='uploads/' ~ peixe['foto']) }}" data-fish-name="{{ peixe['nome_comum'] }}" aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
-                    <img src="{{ url_for('static', filename='uploads/' ~ peixe['foto']) }}" class="fish-card-image" alt="Foto de {{ peixe['nome_comum'] }}">
+                <button type="button" class="fish-image-button" data-fish-image="{{ peixe.imagem_url }}" data-fish-name="{{ peixe['nome_comum'] }}" aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
+                    <img src="{{ peixe.imagem_url }}" class="fish-card-image fish-image" alt="Foto de {{ peixe['nome_comum'] }}">
                 </button>
                 <div class="card-body fish-card-body">
                         <h2 class="h5 card-title mb-1">{{ peixe['nome_comum'] }}</h2>

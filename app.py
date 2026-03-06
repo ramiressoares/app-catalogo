@@ -3,17 +3,16 @@ import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import List
-from uuid import uuid4
 
+import cloudinary
+import cloudinary.uploader
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
 
 
 # Caminhos principais do projeto
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "catalogo_peixes.db")
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 
 # Extensões de imagem permitidas para upload
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -23,9 +22,15 @@ ADMIN_EMAILS = {email.strip().lower() for email in os.getenv("ADMIN_EMAILS", "")
 
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 app.secret_key = "catalogo-peixes-secret"
+
+cloudinary.config(
+	cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+	api_key=os.getenv("CLOUDINARY_API_KEY"),
+	api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+	secure=True,
+)
 
 
 def get_db_connection() -> sqlite3.Connection:
@@ -55,8 +60,7 @@ def ensure_table_schema(conn: sqlite3.Connection, table_name: str, required_colu
 
 
 def init_db() -> None:
-	"""Cria pasta de upload e estrutura do banco automaticamente."""
-	os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+	"""Cria e ajusta a estrutura do banco automaticamente."""
 
 	users_columns = ["id", "nome", "email", "senha", "data_criacao"]
 	peixes_columns = [
@@ -65,7 +69,7 @@ def init_db() -> None:
 		"nome_cientifico",
 		"regiao",
 		"descricao",
-		"foto",
+		"imagem_url",
 		"user_id",
 		"data_postagem",
 	]
@@ -87,7 +91,7 @@ def init_db() -> None:
 		nome_cientifico TEXT NOT NULL,
 		regiao TEXT NOT NULL,
 		descricao TEXT NOT NULL,
-		foto TEXT NOT NULL,
+		imagem_url TEXT NOT NULL,
 		user_id INTEGER NOT NULL,
 		data_postagem TEXT NOT NULL,
 		FOREIGN KEY (user_id) REFERENCES users(id)
@@ -96,7 +100,26 @@ def init_db() -> None:
 
 	with get_db_connection() as conn:
 		ensure_table_schema(conn, "users", users_columns, create_users_sql)
-		ensure_table_schema(conn, "peixes", peixes_columns, create_peixes_sql)
+
+		existing_peixes = conn.execute(
+			"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'peixes'"
+		).fetchone()
+
+		if not existing_peixes:
+			conn.execute(create_peixes_sql)
+		else:
+			cols = conn.execute("PRAGMA table_info(peixes)").fetchall()
+			existing_columns = {col[1] for col in cols}
+
+			if "foto" in existing_columns and "imagem_url" not in existing_columns:
+				conn.execute("ALTER TABLE peixes RENAME COLUMN foto TO imagem_url")
+				cols = conn.execute("PRAGMA table_info(peixes)").fetchall()
+				existing_columns = {col[1] for col in cols}
+
+			if set(peixes_columns) != existing_columns:
+				conn.execute("DROP TABLE IF EXISTS peixes")
+				conn.execute(create_peixes_sql)
+
 		conn.commit()
 
 
@@ -183,7 +206,7 @@ def index():
 		p.nome_cientifico,
 		p.regiao,
 		p.descricao,
-		p.foto,
+		p.imagem_url,
 		p.user_id,
 		p.data_postagem,
 		u.nome AS usuario_nome
@@ -296,7 +319,7 @@ def deletar_peixe(peixe_id: int):
 
 	with get_db_connection() as conn:
 		peixe = conn.execute(
-			"SELECT id, user_id, foto, data_postagem FROM peixes WHERE id = ?",
+			"SELECT id, user_id, imagem_url, data_postagem FROM peixes WHERE id = ?",
 			(peixe_id,),
 		).fetchone()
 
@@ -310,10 +333,6 @@ def deletar_peixe(peixe_id: int):
 
 		conn.execute("DELETE FROM peixes WHERE id = ?", (peixe_id,))
 		conn.commit()
-
-	foto_path = os.path.join(app.config["UPLOAD_FOLDER"], peixe["foto"])
-	if os.path.exists(foto_path):
-		os.remove(foto_path)
 
 	flash("Foto removida com sucesso.", "success")
 	return redirect(url_for("index"))
@@ -376,17 +395,23 @@ def adicionar_peixe():
 			flash("Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
-		nome_seguro = secure_filename(arquivo.filename)
-		nome_arquivo = f"{uuid4().hex}_{nome_seguro}"
-		caminho_arquivo = os.path.join(app.config["UPLOAD_FOLDER"], nome_arquivo)
-		arquivo.save(caminho_arquivo)
+		try:
+			upload_result = cloudinary.uploader.upload(arquivo)
+		except Exception:
+			flash("Nao foi possivel enviar a imagem para o Cloudinary. Tente novamente.", "danger")
+			return redirect(url_for("adicionar_peixe"))
+
+		image_url = upload_result.get("secure_url")
+		if not image_url:
+			flash("Cloudinary nao retornou URL da imagem.", "danger")
+			return redirect(url_for("adicionar_peixe"))
 
 		data_postagem = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 		with get_db_connection() as conn:
 			conn.execute(
 				"""
-				INSERT INTO peixes (nome_comum, nome_cientifico, regiao, descricao, foto, user_id, data_postagem)
+				INSERT INTO peixes (nome_comum, nome_cientifico, regiao, descricao, imagem_url, user_id, data_postagem)
 				VALUES (?, ?, ?, ?, ?, ?, ?)
 				""",
 				(
@@ -394,7 +419,7 @@ def adicionar_peixe():
 					nome_cientifico,
 					regiao,
 					descricao,
-					nome_arquivo,
+					image_url,
 					session["user_id"],
 					data_postagem,
 				),
