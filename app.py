@@ -403,17 +403,22 @@ def adicionar_peixe():
 		nome_cientifico = request.form.get("nome_cientifico", "").strip()
 		regiao = request.form.get("regiao", "").strip()
 		descricao = request.form.get("descricao", "").strip()
-		arquivo = request.files.get("foto") or request.files.get("imagem") or request.files.get("emagen")
+
+		if "foto" not in request.files:
+			flash("Campo de imagem nao enviado no formulario.", "danger")
+			return redirect(url_for("adicionar_peixe"))
+
+		file = request.files["foto"]
 
 		if not all([nome_comum, nome_cientifico, regiao, descricao]):
 			flash("Preencha todos os campos de texto.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
-		if not arquivo or arquivo.filename == "":
+		if not file or file.filename == "":
 			flash("Selecione uma imagem para o peixe.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
-		if not allowed_file(arquivo.filename):
+		if not allowed_file(file.filename):
 			flash("Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
@@ -424,13 +429,18 @@ def adicionar_peixe():
 			return redirect(url_for("adicionar_peixe"))
 
 		try:
-			upload_result = cloudinary.uploader.upload(arquivo)
+			result = cloudinary.uploader.upload(file.stream)
 		except Exception as exc:
 			app.logger.exception("Erro ao enviar imagem para o Cloudinary: %s", exc)
 			flash("Nao foi possivel enviar a imagem para o Cloudinary. Tente novamente.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
-		image_url = upload_result.get("secure_url")
+		if "secure_url" not in result:
+			app.logger.error("Resposta do Cloudinary sem secure_url: %s", result)
+			flash("Cloudinary nao retornou URL segura da imagem.", "danger")
+			return redirect(url_for("adicionar_peixe"))
+
+		image_url = result["secure_url"]
 		if not image_url:
 			flash("Cloudinary nao retornou URL da imagem.", "danger")
 			return redirect(url_for("adicionar_peixe"))
