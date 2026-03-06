@@ -13,6 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 # Caminhos principais do projeto
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "catalogo_peixes.db")
+LEGACY_UPLOADS_DIR = os.path.join(BASE_DIR, "static", "uploads")
 
 # Extensões de imagem permitidas para upload
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -53,6 +54,79 @@ if missing_cloudinary_vars:
 		"Cloudinary desconfigurado. Variaveis ausentes: %s",
 		", ".join(missing_cloudinary_vars),
 	)
+
+
+def migrate_legacy_images_to_cloudinary() -> None:
+	"""Migra registros antigos (nome de arquivo local) para URL Cloudinary."""
+	missing_vars = get_missing_cloudinary_vars()
+	if missing_vars:
+		app.logger.warning(
+			"Migracao legada ignorada: variaveis Cloudinary ausentes (%s)",
+			", ".join(missing_vars),
+		)
+		return
+
+	with get_db_connection() as conn:
+		legacy_rows = conn.execute(
+			"""
+			SELECT id, imagem_url
+			FROM peixes
+			WHERE TRIM(imagem_url) != ''
+			AND imagem_url NOT LIKE 'http://%'
+			AND imagem_url NOT LIKE 'https://%'
+			"""
+		).fetchall()
+
+		if not legacy_rows:
+			return
+
+		migrated = 0
+		for row in legacy_rows:
+			peixe_id = row["id"]
+			legacy_value = (row["imagem_url"] or "").strip()
+
+			if not legacy_value:
+				continue
+
+			file_name = os.path.basename(legacy_value)
+			local_path = os.path.join(LEGACY_UPLOADS_DIR, file_name)
+
+			if not os.path.isfile(local_path):
+				app.logger.warning(
+					"Migracao legada: arquivo nao encontrado para peixe %s (%s)",
+					peixe_id,
+					local_path,
+				)
+				continue
+
+			try:
+				with open(local_path, "rb") as image_file:
+					result = cloudinary.uploader.upload(image_file)
+			except Exception as exc:
+				app.logger.exception(
+					"Migracao legada: erro no upload Cloudinary para peixe %s (%s): %s",
+					peixe_id,
+					local_path,
+					exc,
+				)
+				continue
+
+			secure_url = result.get("secure_url")
+			if not secure_url:
+				app.logger.error(
+					"Migracao legada: Cloudinary sem secure_url para peixe %s. Resposta: %s",
+					peixe_id,
+					result,
+				)
+				continue
+
+			conn.execute("UPDATE peixes SET imagem_url = ? WHERE id = ?", (secure_url, peixe_id))
+			migrated += 1
+
+		conn.commit()
+
+	if migrated:
+		app.logger.info("Migracao legada concluida: %s imagem(ns) atualizada(s) para Cloudinary.", migrated)
 
 
 def get_db_connection() -> sqlite3.Connection:
@@ -148,6 +222,25 @@ def init_db() -> None:
 def allowed_file(filename: str) -> bool:
 	"""Valida se o arquivo tem extensão de imagem permitida."""
 	return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def resolve_image_src(imagem_url: str) -> str:
+	"""Normaliza URL da imagem para exibição no site."""
+	if not imagem_url:
+		return ""
+
+	value = imagem_url.strip()
+	if value.startswith("http://") or value.startswith("https://"):
+		return value
+	if value.startswith("/static/"):
+		return value
+	if value.startswith("static/"):
+		return f"/{value}"
+	if value.startswith("uploads/"):
+		return url_for("static", filename=value)
+
+	# Compatibilidade com registros antigos que guardavam apenas nome de arquivo local.
+	return url_for("static", filename=f"uploads/{value}")
 
 
 def is_admin_user(user_id: int) -> bool:
@@ -258,6 +351,7 @@ def index():
 
 	for peixe in peixes_db:
 		peixe_dict = dict(peixe)
+		peixe_dict["imagem_src"] = resolve_image_src(peixe_dict.get("imagem_url"))
 		peixe_dict["is_owner"] = peixe_dict["user_id"] == current_user_id
 		peixe_dict["can_delete"] = can_delete_peixe(current_user_id, peixe_dict["user_id"], peixe_dict["data_postagem"])
 		peixe_dict["delete_window_expired"] = peixe_dict["is_owner"] and not current_user_is_admin and not is_within_delete_window(peixe_dict["data_postagem"])
@@ -404,11 +498,7 @@ def adicionar_peixe():
 		regiao = request.form.get("regiao", "").strip()
 		descricao = request.form.get("descricao", "").strip()
 
-		if "foto" not in request.files:
-			flash("Campo de imagem nao enviado no formulario.", "danger")
-			return redirect(url_for("adicionar_peixe"))
-
-		file = request.files["foto"]
+		file = request.files.get("foto")
 
 		if not all([nome_comum, nome_cientifico, regiao, descricao]):
 			flash("Preencha todos os campos de texto.", "danger")
@@ -432,7 +522,7 @@ def adicionar_peixe():
 			result = cloudinary.uploader.upload(file.stream)
 		except Exception as exc:
 			app.logger.exception("Erro ao enviar imagem para o Cloudinary: %s", exc)
-			flash("Nao foi possivel enviar a imagem para o Cloudinary. Tente novamente.", "danger")
+			flash(f"Erro Cloudinary: {exc}", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		if "secure_url" not in result:
@@ -472,6 +562,9 @@ def adicionar_peixe():
 
 
 init_db()
+
+if os.getenv("AUTO_MIGRATE_LEGACY_IMAGES", "0") == "1":
+	migrate_legacy_images_to_cloudinary()
 
 
 if __name__ == "__main__":
