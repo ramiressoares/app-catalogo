@@ -319,6 +319,40 @@ def deletar_peixe(peixe_id: int):
 	return redirect(url_for("index"))
 
 
+@app.route("/peixes/<int:peixe_id>/editar-nome-cientifico", methods=["POST"])
+@login_required
+def editar_nome_cientifico(peixe_id: int):
+	current_user_id = session.get("user_id")
+	novo_nome_cientifico = request.form.get("nome_cientifico", "").strip()
+
+	if not novo_nome_cientifico:
+		flash("Informe um nome científico válido.", "danger")
+		return redirect(url_for("index"))
+
+	with get_db_connection() as conn:
+		peixe = conn.execute(
+			"SELECT id, user_id FROM peixes WHERE id = ?",
+			(peixe_id,),
+		).fetchone()
+
+		if not peixe:
+			flash("Peixe não encontrado.", "warning")
+			return redirect(url_for("index"))
+
+		if peixe["user_id"] != current_user_id:
+			flash("Apenas o dono da foto pode editar o nome científico.", "danger")
+			return redirect(url_for("index"))
+
+		conn.execute(
+			"UPDATE peixes SET nome_cientifico = ? WHERE id = ?",
+			(novo_nome_cientifico, peixe_id),
+		)
+		conn.commit()
+
+	flash("Nome científico atualizado com sucesso.", "success")
+	return redirect(url_for("index"))
+
+
 @app.route("/adicionar", methods=["GET", "POST"])
 @login_required
 def adicionar_peixe():

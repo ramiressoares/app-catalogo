@@ -53,6 +53,15 @@
                 <div class="card-body fish-card-body">
                         <h2 class="h5 card-title mb-1">{{ peixe['nome_comum'] }}</h2>
                         <p class="text-muted mb-2"><em>{{ peixe['nome_cientifico'] }}</em></p>
+                        {% if peixe['is_owner'] %}
+                            <form method="post" action="{{ url_for('editar_nome_cientifico', peixe_id=peixe['id']) }}" class="mb-2">
+                                <label for="nome_cientifico_{{ peixe['id'] }}" class="form-label mb-1 small">Editar nome científico</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="nome_cientifico_{{ peixe['id'] }}" name="nome_cientifico" class="form-control" value="{{ peixe['nome_cientifico'] }}" required>
+                                    <button type="submit" class="btn btn-outline-primary">Salvar</button>
+                                </div>
+                            </form>
+                        {% endif %}
                         <p class="mb-2"><strong>Região:</strong> {{ peixe['regiao'] }}</p>
                         <p class="card-text mb-2">{{ peixe['descricao'] }}</p>
                         <small class="text-muted d-block">Cadastrado por: {{ peixe['usuario_nome'] }}</small>
