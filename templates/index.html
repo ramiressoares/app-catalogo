@@ -11,6 +11,17 @@
     </div>
 </section>
 
+<div class="estatisticas mb-4" aria-label="Estatísticas do catálogo">
+    <div class="estatistica-item">
+        <span class="estatistica-label">🐟 Peixes catalogados:</span>
+        <strong class="estatistica-valor">{{ total_peixes }}</strong>
+    </div>
+    <div class="estatistica-item">
+        <span class="estatistica-label">👤 Pescadores participantes:</span>
+        <strong class="estatistica-valor">{{ total_pescadores }}</strong>
+    </div>
+</div>
+
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
     <h2 class="h4 mb-0">Peixes cadastrados</h2>
     {% if logged_user_id %}

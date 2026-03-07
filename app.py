@@ -344,6 +344,8 @@ def index():
 	with get_db_connection() as conn:
 		peixes_db = conn.execute(query, params).fetchall()
 		regioes = conn.execute("SELECT DISTINCT regiao FROM peixes ORDER BY regiao").fetchall()
+		total_peixes = conn.execute("SELECT COUNT(*) FROM peixes").fetchone()[0]
+		total_pescadores = conn.execute("SELECT COUNT(DISTINCT user_id) FROM peixes").fetchone()[0]
 
 	current_user_id = session.get("user_id")
 	current_user_is_admin = is_admin_user(current_user_id)
@@ -363,6 +365,8 @@ def index():
 		q=q,
 		regiao_selecionada=regiao,
 		regioes=[item["regiao"] for item in regioes],
+		total_peixes=total_peixes,
+		total_pescadores=total_pescadores,
 	)
 
 
