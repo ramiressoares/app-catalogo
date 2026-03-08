@@ -2,18 +2,27 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import List
+from typing import Any, List, Optional, Sequence
 
 import cloudinary
 import cloudinary.uploader
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
+try:
+	import psycopg2
+	from psycopg2 import extras as psycopg2_extras
+except ImportError:
+	psycopg2 = None
+	psycopg2_extras = None
+
 
 # Caminhos principais do projeto
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "catalogo_peixes.db")
 LEGACY_UPLOADS_DIR = os.path.join(BASE_DIR, "static", "uploads")
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+USE_POSTGRES = bool(DATABASE_URL)
 
 # Extensões de imagem permitidas para upload
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -29,6 +38,53 @@ app.secret_key = "catalogo-peixes-secret"
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
 CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
 CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+DB_INTEGRITY_ERRORS: tuple[type[Exception], ...] = (sqlite3.IntegrityError,)
+
+if USE_POSTGRES and psycopg2:
+	DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError, psycopg2.IntegrityError)
+
+
+class DBConnection:
+	"""Wrapper para padronizar consultas entre SQLite e PostgreSQL."""
+
+	def __init__(self, conn: Any, use_postgres: bool):
+		self._conn = conn
+		self._use_postgres = use_postgres
+
+	def _normalize_query(self, query: str) -> str:
+		if self._use_postgres:
+			return query.replace("?", "%s")
+		return query
+
+	def execute(self, query: str, params: Optional[Sequence[Any]] = None):
+		normalized_query = self._normalize_query(query)
+		if self._use_postgres:
+			cursor = self._conn.cursor()
+			cursor.execute(normalized_query, tuple(params or ()))
+			return cursor
+
+		return self._conn.execute(normalized_query, tuple(params or ()))
+
+	def commit(self) -> None:
+		self._conn.commit()
+
+	def rollback(self) -> None:
+		self._conn.rollback()
+
+	def close(self) -> None:
+		self._conn.close()
+
+	def __enter__(self) -> "DBConnection":
+		return self
+
+	def __exit__(self, exc_type, exc, tb) -> bool:
+		if exc:
+			try:
+				self.rollback()
+			except Exception:
+				pass
+		self.close()
+		return False
 
 
 def get_missing_cloudinary_vars() -> List[str]:
@@ -129,16 +185,27 @@ def migrate_legacy_images_to_cloudinary() -> None:
 		app.logger.info("Migracao legada concluida: %s imagem(ns) atualizada(s) para Cloudinary.", migrated)
 
 
-def get_db_connection() -> sqlite3.Connection:
-	"""Cria conexão com SQLite, habilitando FK e retorno por chave de coluna."""
+def get_db_connection() -> DBConnection:
+	"""Cria conexão com PostgreSQL (DATABASE_URL) ou SQLite local automaticamente."""
+	if USE_POSTGRES:
+		if not psycopg2 or not psycopg2_extras:
+			raise RuntimeError("DATABASE_URL definido, mas psycopg2 nao esta instalado.")
+
+		conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2_extras.DictCursor)
+		return DBConnection(conn, use_postgres=True)
+
 	conn = sqlite3.connect(DB_PATH)
 	conn.row_factory = sqlite3.Row
 	conn.execute("PRAGMA foreign_keys = ON")
-	return conn
+	return DBConnection(conn, use_postgres=False)
 
 
-def ensure_table_schema(conn: sqlite3.Connection, table_name: str, required_columns: List[str], create_sql: str) -> None:
+def ensure_table_schema(conn: DBConnection, table_name: str, required_columns: List[str], create_sql: str) -> None:
 	"""Garante esquema esperado; se estiver inconsistente, recria a tabela."""
+	if USE_POSTGRES:
+		conn.execute(create_sql)
+		return
+
 	existing = conn.execute(
 		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", (table_name,)
 	).fetchone()
@@ -155,8 +222,66 @@ def ensure_table_schema(conn: sqlite3.Connection, table_name: str, required_colu
 		conn.execute(create_sql)
 
 
+def init_postgres_db(conn: DBConnection) -> None:
+	"""Inicializa as tabelas no PostgreSQL."""
+	conn.execute(
+		"""
+		CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			nome TEXT NOT NULL,
+			email TEXT NOT NULL UNIQUE,
+			senha TEXT NOT NULL,
+			data_criacao TEXT NOT NULL
+		)
+		"""
+	)
+
+	conn.execute(
+		"""
+		CREATE TABLE IF NOT EXISTS peixes (
+			id SERIAL PRIMARY KEY,
+			nome_comum TEXT NOT NULL,
+			nome_cientifico TEXT NOT NULL,
+			regiao TEXT NOT NULL,
+			descricao TEXT NOT NULL,
+			imagem_url TEXT NOT NULL,
+			user_id INTEGER NOT NULL REFERENCES users(id),
+			data_postagem TEXT NOT NULL
+		)
+		"""
+	)
+
+	legacy_col = conn.execute(
+		"""
+		SELECT column_name
+		FROM information_schema.columns
+		WHERE table_name = %s
+		AND column_name = %s
+		""",
+		("peixes", "foto"),
+	).fetchone()
+
+	new_col = conn.execute(
+		"""
+		SELECT column_name
+		FROM information_schema.columns
+		WHERE table_name = %s
+		AND column_name = %s
+		""",
+		("peixes", "imagem_url"),
+	).fetchone()
+
+	if legacy_col and not new_col:
+		conn.execute("ALTER TABLE peixes RENAME COLUMN foto TO imagem_url")
+
+
 def init_db() -> None:
 	"""Cria e ajusta a estrutura do banco automaticamente."""
+	if USE_POSTGRES:
+		with get_db_connection() as conn:
+			init_postgres_db(conn)
+			conn.commit()
+		return
 
 	users_columns = ["id", "nome", "email", "senha", "data_criacao"]
 	peixes_columns = [
@@ -392,7 +517,7 @@ def registrar():
 					(nome, email, senha_hash, data_criacao),
 				)
 				conn.commit()
-		except sqlite3.IntegrityError:
+		except DB_INTEGRITY_ERRORS:
 			flash("Este e-mail já está cadastrado.", "warning")
 			return redirect(url_for("registrar"))
 
