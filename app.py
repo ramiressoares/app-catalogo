@@ -22,7 +22,8 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "catalogo_peixes.db")
 LEGACY_UPLOADS_DIR = os.path.join(BASE_DIR, "static", "uploads")
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-USE_POSTGRES = bool(DATABASE_URL)
+POSTGRES_DRIVER_AVAILABLE = bool(psycopg2 and psycopg2_extras)
+USE_POSTGRES = bool(DATABASE_URL and POSTGRES_DRIVER_AVAILABLE)
 
 # Extensões de imagem permitidas para upload
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -188,9 +189,6 @@ def migrate_legacy_images_to_cloudinary() -> None:
 def get_db_connection() -> DBConnection:
 	"""Cria conexão com PostgreSQL (DATABASE_URL) ou SQLite local automaticamente."""
 	if USE_POSTGRES:
-		if not psycopg2 or not psycopg2_extras:
-			raise RuntimeError("DATABASE_URL definido, mas psycopg2 nao esta instalado.")
-
 		conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2_extras.DictCursor)
 		return DBConnection(conn, use_postgres=True)
 
