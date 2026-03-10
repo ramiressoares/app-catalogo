@@ -25,6 +25,9 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 POSTGRES_DRIVER_AVAILABLE = bool(psycopg2 and psycopg2_extras)
 USE_POSTGRES = bool(DATABASE_URL and POSTGRES_DRIVER_AVAILABLE)
 
+if DATABASE_URL and not POSTGRES_DRIVER_AVAILABLE:
+	raise RuntimeError("DATABASE_URL foi definido, mas o driver psycopg2 nao esta disponivel.")
+
 # Extensões de imagem permitidas para upload
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 DELETE_WINDOW_MINUTES = 20
@@ -221,15 +224,14 @@ def ensure_table_schema(conn: DBConnection, table_name: str, required_columns: L
 
 
 def init_postgres_db(conn: DBConnection) -> None:
-	"""Inicializa as tabelas no PostgreSQL."""
+	"""Inicializa as tabelas no PostgreSQL usando DATABASE_URL."""
 	conn.execute(
 		"""
-		CREATE TABLE IF NOT EXISTS users (
+		CREATE TABLE IF NOT EXISTS usuarios (
 			id SERIAL PRIMARY KEY,
-			nome TEXT NOT NULL,
-			email TEXT NOT NULL UNIQUE,
-			senha TEXT NOT NULL,
-			data_criacao TEXT NOT NULL
+			nome TEXT,
+			email TEXT,
+			senha TEXT
 		)
 		"""
 	)
@@ -238,39 +240,27 @@ def init_postgres_db(conn: DBConnection) -> None:
 		"""
 		CREATE TABLE IF NOT EXISTS peixes (
 			id SERIAL PRIMARY KEY,
-			nome_comum TEXT NOT NULL,
-			nome_cientifico TEXT NOT NULL,
-			regiao TEXT NOT NULL,
-			descricao TEXT NOT NULL,
-			imagem_url TEXT NOT NULL,
-			user_id INTEGER NOT NULL REFERENCES users(id),
-			data_postagem TEXT NOT NULL
+			nome TEXT,
+			especie TEXT,
+			regiao TEXT,
+			imagem_url TEXT,
+			usuario_id INTEGER REFERENCES usuarios(id),
+			data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)
 		"""
 	)
 
-	legacy_col = conn.execute(
+	conn.execute(
 		"""
-		SELECT column_name
-		FROM information_schema.columns
-		WHERE table_name = %s
-		AND column_name = %s
-		""",
-		("peixes", "foto"),
-	).fetchone()
-
-	new_col = conn.execute(
+		CREATE TABLE IF NOT EXISTS comentarios (
+			id SERIAL PRIMARY KEY,
+			peixe_id INTEGER REFERENCES peixes(id),
+			usuario_id INTEGER REFERENCES usuarios(id),
+			comentario TEXT,
+			data TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
 		"""
-		SELECT column_name
-		FROM information_schema.columns
-		WHERE table_name = %s
-		AND column_name = %s
-		""",
-		("peixes", "imagem_url"),
-	).fetchone()
-
-	if legacy_col and not new_col:
-		conn.execute("ALTER TABLE peixes RENAME COLUMN foto TO imagem_url")
+	)
 
 
 def init_db() -> None:
@@ -281,44 +271,54 @@ def init_db() -> None:
 			conn.commit()
 		return
 
-	users_columns = ["id", "nome", "email", "senha", "data_criacao"]
+	users_columns = ["id", "nome", "email", "senha"]
 	peixes_columns = [
 		"id",
-		"nome_comum",
-		"nome_cientifico",
+		"nome",
+		"especie",
 		"regiao",
-		"descricao",
 		"imagem_url",
-		"user_id",
+		"usuario_id",
 		"data_postagem",
 	]
+	comentarios_columns = ["id", "peixe_id", "usuario_id", "comentario", "data"]
 
 	create_users_sql = """
-	CREATE TABLE IF NOT EXISTS users (
+	CREATE TABLE IF NOT EXISTS usuarios (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		nome TEXT NOT NULL,
-		email TEXT NOT NULL UNIQUE,
-		senha TEXT NOT NULL,
-		data_criacao TEXT NOT NULL
+		nome TEXT,
+		email TEXT,
+		senha TEXT
 	)
 	"""
 
 	create_peixes_sql = """
 	CREATE TABLE IF NOT EXISTS peixes (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		nome_comum TEXT NOT NULL,
-		nome_cientifico TEXT NOT NULL,
-		regiao TEXT NOT NULL,
-		descricao TEXT NOT NULL,
-		imagem_url TEXT NOT NULL,
-		user_id INTEGER NOT NULL,
-		data_postagem TEXT NOT NULL,
-		FOREIGN KEY (user_id) REFERENCES users(id)
+		nome TEXT,
+		especie TEXT,
+		regiao TEXT,
+		imagem_url TEXT,
+		usuario_id INTEGER,
+		data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+	)
+	"""
+
+	create_comentarios_sql = """
+	CREATE TABLE IF NOT EXISTS comentarios (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		peixe_id INTEGER,
+		usuario_id INTEGER,
+		comentario TEXT,
+		data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (peixe_id) REFERENCES peixes(id),
+		FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 	)
 	"""
 
 	with get_db_connection() as conn:
-		ensure_table_schema(conn, "users", users_columns, create_users_sql)
+		ensure_table_schema(conn, "usuarios", users_columns, create_users_sql)
 
 		existing_peixes = conn.execute(
 			"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'peixes'"
@@ -330,14 +330,11 @@ def init_db() -> None:
 			cols = conn.execute("PRAGMA table_info(peixes)").fetchall()
 			existing_columns = {col[1] for col in cols}
 
-			if "foto" in existing_columns and "imagem_url" not in existing_columns:
-				conn.execute("ALTER TABLE peixes RENAME COLUMN foto TO imagem_url")
-				cols = conn.execute("PRAGMA table_info(peixes)").fetchall()
-				existing_columns = {col[1] for col in cols}
-
 			if set(peixes_columns) != existing_columns:
 				conn.execute("DROP TABLE IF EXISTS peixes")
 				conn.execute(create_peixes_sql)
+
+		ensure_table_schema(conn, "comentarios", comentarios_columns, create_comentarios_sql)
 
 		conn.commit()
 
@@ -377,7 +374,7 @@ def is_admin_user(user_id: int) -> bool:
 		return False
 
 	with get_db_connection() as conn:
-		user = conn.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+		user = conn.execute("SELECT email FROM usuarios WHERE id = ?", (user_id,)).fetchone()
 
 	if not user:
 		return False
@@ -386,10 +383,13 @@ def is_admin_user(user_id: int) -> bool:
 
 
 def is_within_delete_window(data_postagem: str) -> bool:
-	try:
-		post_date = datetime.strptime(data_postagem, "%Y-%m-%d %H:%M:%S")
-	except ValueError:
-		return False
+	if isinstance(data_postagem, datetime):
+		post_date = data_postagem
+	else:
+		try:
+			post_date = datetime.strptime(str(data_postagem), "%Y-%m-%d %H:%M:%S")
+		except ValueError:
+			return False
 
 	deadline = post_date + timedelta(minutes=DELETE_WINDOW_MINUTES)
 	return datetime.now() <= deadline
@@ -440,35 +440,34 @@ def index():
 	query = """
 	SELECT
 		p.id,
-		p.nome_comum,
-		p.nome_cientifico,
+		p.nome,
+		p.especie,
 		p.regiao,
-		p.descricao,
 		p.imagem_url,
-		p.user_id,
+		p.usuario_id,
 		p.data_postagem,
 		u.nome AS usuario_nome
 	FROM peixes p
-	JOIN users u ON u.id = p.user_id
+	JOIN usuarios u ON u.id = p.usuario_id
 	WHERE 1=1
 	"""
 	params = []
 
 	if q:
-		query += " AND p.nome_comum LIKE ?"
+		query += " AND p.nome LIKE ?"
 		params.append(f"%{q}%")
 
 	if regiao:
 		query += " AND p.regiao = ?"
 		params.append(regiao)
 
-	query += " ORDER BY datetime(p.data_postagem) DESC"
+	query += " ORDER BY p.data_postagem DESC"
 
 	with get_db_connection() as conn:
 		peixes_db = conn.execute(query, params).fetchall()
 		regioes = conn.execute("SELECT DISTINCT regiao FROM peixes ORDER BY regiao").fetchall()
 		total_peixes = conn.execute("SELECT COUNT(*) FROM peixes").fetchone()[0]
-		total_pescadores = conn.execute("SELECT COUNT(DISTINCT user_id) FROM peixes").fetchone()[0]
+		total_pescadores = conn.execute("SELECT COUNT(DISTINCT usuario_id) FROM peixes").fetchone()[0]
 
 	current_user_id = session.get("user_id")
 	current_user_is_admin = is_admin_user(current_user_id)
@@ -477,8 +476,11 @@ def index():
 	for peixe in peixes_db:
 		peixe_dict = dict(peixe)
 		peixe_dict["imagem_src"] = resolve_image_src(peixe_dict.get("imagem_url"))
-		peixe_dict["is_owner"] = peixe_dict["user_id"] == current_user_id
-		peixe_dict["can_delete"] = can_delete_peixe(current_user_id, peixe_dict["user_id"], peixe_dict["data_postagem"])
+		peixe_dict["nome_comum"] = peixe_dict.get("nome")
+		peixe_dict["nome_cientifico"] = peixe_dict.get("especie")
+		peixe_dict["descricao"] = ""
+		peixe_dict["is_owner"] = peixe_dict["usuario_id"] == current_user_id
+		peixe_dict["can_delete"] = can_delete_peixe(current_user_id, peixe_dict["usuario_id"], peixe_dict["data_postagem"])
 		peixe_dict["delete_window_expired"] = peixe_dict["is_owner"] and not current_user_is_admin and not is_within_delete_window(peixe_dict["data_postagem"])
 		peixes.append(peixe_dict)
 
@@ -506,13 +508,11 @@ def registrar():
 			return redirect(url_for("registrar"))
 
 		senha_hash = generate_password_hash(senha)
-		data_criacao = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
 		try:
 			with get_db_connection() as conn:
 				conn.execute(
-					"INSERT INTO users (nome, email, senha, data_criacao) VALUES (?, ?, ?, ?)",
-					(nome, email, senha_hash, data_criacao),
+					"INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)",
+					(nome, email, senha_hash),
 				)
 				conn.commit()
 		except DB_INTEGRITY_ERRORS:
@@ -533,7 +533,7 @@ def login():
 		senha = request.form.get("senha", "")
 
 		with get_db_connection() as conn:
-			user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+			user = conn.execute("SELECT * FROM usuarios WHERE email = ?", (email,)).fetchone()
 
 		if not user or not check_password_hash(user["senha"], senha):
 			flash("E-mail ou senha inválidos.", "danger")
@@ -562,7 +562,7 @@ def deletar_peixe(peixe_id: int):
 
 	with get_db_connection() as conn:
 		peixe = conn.execute(
-			"SELECT id, user_id, imagem_url, data_postagem FROM peixes WHERE id = ?",
+			"SELECT id, usuario_id, imagem_url, data_postagem FROM peixes WHERE id = ?",
 			(peixe_id,),
 		).fetchone()
 
@@ -570,7 +570,7 @@ def deletar_peixe(peixe_id: int):
 			flash("Peixe não encontrado.", "warning")
 			return redirect(url_for("index"))
 
-		if not can_delete_peixe(current_user_id, peixe["user_id"], peixe["data_postagem"]):
+		if not can_delete_peixe(current_user_id, peixe["usuario_id"], peixe["data_postagem"]):
 			flash("Você só pode excluir sua foto em até 20 minutos após a postagem. Depois disso, apenas administrador.", "danger")
 			return redirect(url_for("index"))
 
@@ -593,7 +593,7 @@ def editar_nome_cientifico(peixe_id: int):
 
 	with get_db_connection() as conn:
 		peixe = conn.execute(
-			"SELECT id, user_id FROM peixes WHERE id = ?",
+			"SELECT id, usuario_id FROM peixes WHERE id = ?",
 			(peixe_id,),
 		).fetchone()
 
@@ -601,12 +601,12 @@ def editar_nome_cientifico(peixe_id: int):
 			flash("Peixe não encontrado.", "warning")
 			return redirect(url_for("index"))
 
-		if peixe["user_id"] != current_user_id:
+		if peixe["usuario_id"] != current_user_id:
 			flash("Apenas o dono da foto pode editar o nome científico.", "danger")
 			return redirect(url_for("index"))
 
 		conn.execute(
-			"UPDATE peixes SET nome_cientifico = ? WHERE id = ?",
+			"UPDATE peixes SET especie = ? WHERE id = ?",
 			(novo_nome_cientifico, peixe_id),
 		)
 		conn.commit()
@@ -623,11 +623,10 @@ def adicionar_peixe():
 		nome_comum = request.form.get("nome_comum", "").strip()
 		nome_cientifico = request.form.get("nome_cientifico", "").strip()
 		regiao = request.form.get("regiao", "").strip()
-		descricao = request.form.get("descricao", "").strip()
 
 		file = request.files.get("foto")
 
-		if not all([nome_comum, nome_cientifico, regiao, descricao]):
+		if not all([nome_comum, nome_cientifico, regiao]):
 			flash("Preencha todos os campos de texto.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
@@ -662,22 +661,18 @@ def adicionar_peixe():
 			flash("Cloudinary nao retornou URL da imagem.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
-		data_postagem = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
 		with get_db_connection() as conn:
 			conn.execute(
 				"""
-				INSERT INTO peixes (nome_comum, nome_cientifico, regiao, descricao, imagem_url, user_id, data_postagem)
-				VALUES (?, ?, ?, ?, ?, ?, ?)
+				INSERT INTO peixes (nome, especie, regiao, imagem_url, usuario_id)
+				VALUES (?, ?, ?, ?, ?)
 				""",
 				(
 					nome_comum,
 					nome_cientifico,
 					regiao,
-					descricao,
 					image_url,
 					session["user_id"],
-					data_postagem,
 				),
 			)
 			conn.commit()
