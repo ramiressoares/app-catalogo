@@ -66,8 +66,8 @@
                     <div class="fish-card-image d-flex align-items-center justify-content-center text-muted">Imagem indisponivel</div>
                 {% endif %}
                 <div class="card-body fish-card-body">
-                        <h2 class="h5 card-title mb-1">{{ peixe['nome_comum'] }}</h2>
-                        <p class="text-muted mb-2"><em>{{ peixe['nome_cientifico'] }}</em></p>
+                        <h2 class="fish-card-title">{{ peixe['nome_comum'] }}</h2>
+                        <p class="fish-card-scientific">{{ peixe['nome_cientifico'] }}</p>
                         {% if peixe['is_owner'] %}
                             <form method="post" action="{{ url_for('editar_nome_cientifico', peixe_id=peixe['id']) }}" class="mb-2">
                                 <label for="nome_cientifico_{{ peixe['id'] }}" class="form-label mb-1 small">Editar nome científico</label>
@@ -77,14 +77,16 @@
                                 </div>
                             </form>
                         {% endif %}
-                        <p class="mb-2"><strong>Região:</strong> {{ peixe['regiao'] }}</p>
-                        <p class="card-text mb-2">{{ peixe['descricao'] }}</p>
-                        <small class="text-muted d-block">Cadastrado por: {{ peixe['usuario_nome'] }}</small>
-                        <small class="text-muted">Data: {{ peixe['data_postagem'] }}</small>
+                        <div class="fish-card-meta">
+                            <span class="fish-card-meta-item">📍 {{ peixe['regiao'] }}</span>
+                            <span class="fish-card-meta-item">👤 {{ peixe['usuario_nome'] }}</span>
+                            <span class="fish-card-meta-item">📅 {{ peixe['data_postagem'] }}</span>
+                        </div>
+                        <p class="card-text">{{ peixe['descricao'] }}</p>
 
                         {% if peixe['can_delete'] %}
-                            <form method="post" action="{{ url_for('deletar_peixe', peixe_id=peixe['id']) }}" class="mt-2" onsubmit="return confirm('Deseja excluir esta foto?');">
-                                <button type="submit" class="btn btn-outline-danger btn-sm w-100">Excluir foto</button>
+                            <form method="post" action="{{ url_for('deletar_peixe', peixe_id=peixe['id']) }}" onsubmit="return confirm('Deseja excluir esta foto?');">
+                                <button type="submit" class="btn-delete-fish">🗑 Excluir foto</button>
                             </form>
                         {% elif peixe['delete_window_expired'] %}
                             <small class="text-muted d-block mt-2">Prazo de 20 minutos expirado. Apenas administrador pode excluir agora.</small>
