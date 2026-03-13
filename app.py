@@ -273,6 +273,19 @@ def is_within_delete_window(data_postagem: str) -> bool:
 	return datetime.now() <= deadline
 
 
+def format_data_postagem(data_postagem: Any) -> str:
+	"""Formata data como d/m/aaaa h: hh:mm para exibicao no template."""
+	if isinstance(data_postagem, datetime):
+		post_date = data_postagem
+	else:
+		try:
+			post_date = datetime.fromisoformat(str(data_postagem).replace("Z", "+00:00")).replace(tzinfo=None)
+		except ValueError:
+			return str(data_postagem)
+
+	return f"{post_date.day}/{post_date.month}/{post_date.year} h: {post_date:%H:%M}"
+
+
 def can_delete_peixe(current_user_id: int, peixe_user_id: int, data_postagem: str) -> bool:
 	if is_admin_user(current_user_id):
 		return True
@@ -353,13 +366,15 @@ def index():
 
 	for peixe in peixes_db:
 		peixe_dict = dict(peixe)
+		data_postagem_raw = peixe_dict.get("data_postagem")
 		peixe_dict["imagem_src"] = resolve_image_src(peixe_dict.get("imagem_url"))
 		peixe_dict["nome_comum"] = peixe_dict.get("nome")
 		peixe_dict["nome_cientifico"] = peixe_dict.get("especie")
 		peixe_dict["descricao"] = ""
 		peixe_dict["is_owner"] = peixe_dict["usuario_id"] == current_user_id
-		peixe_dict["can_delete"] = can_delete_peixe(current_user_id, peixe_dict["usuario_id"], peixe_dict["data_postagem"])
-		peixe_dict["delete_window_expired"] = peixe_dict["is_owner"] and not current_user_is_admin and not is_within_delete_window(peixe_dict["data_postagem"])
+		peixe_dict["can_delete"] = can_delete_peixe(current_user_id, peixe_dict["usuario_id"], data_postagem_raw)
+		peixe_dict["delete_window_expired"] = peixe_dict["is_owner"] and not current_user_is_admin and not is_within_delete_window(data_postagem_raw)
+		peixe_dict["data_postagem"] = format_data_postagem(data_postagem_raw)
 		peixes.append(peixe_dict)
 
 	return render_template(
