@@ -67,10 +67,12 @@ class DBConnection:
 
 def get_db_connection() -> DBConnection:
 	"""Conecta ao PostgreSQL via DATABASE_URL com timeout e DictCursor."""
-	database_url = (os.getenv("DATABASE_URL") or "").strip()
+	database_url = os.getenv("DATABASE_URL")
 
 	if not database_url:
-		raise ValueError("DATABASE_URL nao esta definida no ambiente")
+		raise Exception("DATABASE_URL nao esta configurada")
+
+	database_url = database_url.strip()
 
 	# Compatibilidade com URLs legadas do Render.
 	if database_url.startswith("postgres://"):
