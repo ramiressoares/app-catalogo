@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, List, Optional, Sequence
@@ -6,18 +7,13 @@ from typing import Any, List, Optional, Sequence
 import cloudinary
 import cloudinary.uploader
 import psycopg2
-from psycopg2 import extras as psycopg2_extras
+import psycopg2.extras
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
 LEGACY_UPLOADS_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "static", "uploads")
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-if not DATABASE_URL:
-	raise RuntimeError("A variavel de ambiente DATABASE_URL e obrigatoria no Render.")
-
-if DATABASE_URL.startswith("postgres://"):
-	DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+logger = logging.getLogger(__name__)
 
 # Extensoes de imagem permitidas para upload
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -70,9 +66,26 @@ class DBConnection:
 
 
 def get_db_connection() -> DBConnection:
-	"""Conecta ao PostgreSQL do Render via DATABASE_URL."""
-	conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2_extras.DictCursor)
-	return DBConnection(conn)
+	"""Conecta ao PostgreSQL via DATABASE_URL com timeout e DictCursor."""
+	database_url = (os.getenv("DATABASE_URL") or "").strip()
+
+	if not database_url:
+		raise ValueError("DATABASE_URL nao esta definida no ambiente")
+
+	# Compatibilidade com URLs legadas do Render.
+	if database_url.startswith("postgres://"):
+		database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+	try:
+		conn = psycopg2.connect(
+			database_url,
+			connect_timeout=10,
+			cursor_factory=psycopg2.extras.DictCursor,
+		)
+		return DBConnection(conn)
+	except Exception as e:
+		logger.error("Erro ao conectar no banco: %s", e)
+		raise
 
 
 def init_db() -> None:
