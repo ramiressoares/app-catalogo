@@ -3,98 +3,117 @@
 {% block title %}Lista de Peixes{% endblock %}
 
 {% block content %}
-<section class="hero-aquatico mb-4 mb-md-5">
-    <div class="hero-aquatico-overlay">
-        <p class="hero-kicker mb-2">Catálogo de Peixes</p>
-        <h1 class="hero-title mb-3">Cada espécie preservada é um capítulo vivo da história dos nossos rios e oceanos.</h1>
-        <p class="hero-subtitle mb-0">Preservar a biodiversidade aquática é proteger o equilíbrio da vida, hoje e para as próximas gerações.</p>
+<section class="catalog-hero section-stack">
+    <div class="catalog-hero__content">
+        <div class="catalog-hero__eyebrow">Catálogo colaborativo</div>
+        <h1 class="catalog-hero__title">Transforme registros de campo em um catálogo visual limpo, pesquisável e pronto para compartilhar.</h1>
+        <p class="catalog-hero__text">Organize espécies, acompanhe contribuições da comunidade e destaque a biodiversidade aquática com uma experiência moderna em qualquer tela.</p>
+        <div class="catalog-hero__actions">
+            {% if logged_user_id %}
+                <a href="{{ url_for('adicionar_peixe') }}" class="app-button app-button--hero"><i class="bi bi-plus-circle-fill"></i><span>Novo peixe</span></a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="app-button app-button--hero"><i class="bi bi-box-arrow-in-right"></i><span>Entrar para cadastrar</span></a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="catalog-hero__panel" aria-label="Indicadores do catálogo">
+        <div class="hero-panel__item">
+            <span class="hero-panel__label">Peixes catalogados</span>
+            <strong class="hero-panel__value">{{ total_peixes }}</strong>
+        </div>
+        <div class="hero-panel__item">
+            <span class="hero-panel__label">Pescadores participantes</span>
+            <strong class="hero-panel__value">{{ total_pescadores }}</strong>
+        </div>
     </div>
 </section>
 
-<div class="estatisticas mb-4" aria-label="Estatísticas do catálogo">
-    <div class="estatistica-item">
-        <span class="estatistica-label">🐟 Peixes catalogados:</span>
-        <strong class="estatistica-valor">{{ total_peixes }}</strong>
+<section class="filter-panel section-stack">
+    <div class="section-heading">
+        <div>
+            <p class="section-heading__eyebrow">Explorar</p>
+            <h2 class="section-heading__title">Peixes cadastrados</h2>
+        </div>
     </div>
-    <div class="estatistica-item">
-        <span class="estatistica-label">👤 Pescadores participantes:</span>
-        <strong class="estatistica-valor">{{ total_pescadores }}</strong>
-    </div>
-</div>
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-    <h2 class="h4 mb-0">Peixes cadastrados</h2>
-    {% if logged_user_id %}
-        <a href="{{ url_for('adicionar_peixe') }}" class="btn btn-primary btn-sm mobile-full-btn">Novo peixe</a>
-    {% else %}
-        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm mobile-full-btn">Faça login para cadastrar</a>
-    {% endif %}
-</div>
-
-<div class="card shadow-sm mb-3">
-    <div class="card-body">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-12 col-md-6">
-                <label for="q" class="form-label mb-1">Buscar por nome comum</label>
-                <input type="text" class="form-control" id="q" name="q" placeholder="Ex: Tilápia" value="{{ q }}">
+    <div class="surface-card surface-card--filter">
+        <form method="get" class="filter-form">
+            <div class="filter-form__field">
+                <label for="q" class="form-label">Buscar por nome comum</label>
+                <div class="input-shell">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="form-control" id="q" name="q" placeholder="Ex: Tilápia" value="{{ q }}">
+                </div>
             </div>
-            <div class="col-12 col-md-4">
-                <label for="regiao" class="form-label mb-1">Filtrar por região</label>
-                <select class="form-select" id="regiao" name="regiao">
-                    <option value="">Todas as regiões</option>
-                    {% for regiao in regioes %}
-                        <option value="{{ regiao }}" {% if regiao == regiao_selecionada %}selected{% endif %}>{{ regiao }}</option>
-                    {% endfor %}
-                </select>
+            <div class="filter-form__field">
+                <label for="regiao" class="form-label">Filtrar por região</label>
+                <div class="input-shell">
+                    <i class="bi bi-geo-alt"></i>
+                    <select class="form-select" id="regiao" name="regiao">
+                        <option value="">Todas as regiões</option>
+                        {% for regiao in regioes %}
+                            <option value="{{ regiao }}" {% if regiao == regiao_selecionada %}selected{% endif %}>{{ regiao }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div class="col-12 col-md-2 d-grid">
-                <button type="submit" class="btn btn-primary">Aplicar</button>
+            <div class="filter-form__actions">
+                <button type="submit" class="app-button app-button--filter"><i class="bi bi-funnel-fill"></i><span>Aplicar</span></button>
             </div>
         </form>
     </div>
-</div>
+</section>
 
 {% if peixes %}
-    <div class="fish-grid" id="fishGrid">
+    <section class="fish-grid section-stack" id="fishGrid">
         {% for peixe in peixes %}
-            <article class="fish-card">
+            <article class="fish-card surface-card">
                 {% if peixe['imagem_src'] %}
                     <button type="button" class="fish-image-button" data-fish-image="{{ peixe['imagem_src'] }}" data-fish-name="{{ peixe['nome_comum'] }}" aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
                         <img src="{{ peixe['imagem_src'] }}" class="fish-card-image fish-image" alt="Foto de {{ peixe['nome_comum'] }}">
                     </button>
                 {% else %}
-                    <div class="fish-card-image d-flex align-items-center justify-content-center text-muted">Imagem indisponivel</div>
+                    <div class="fish-card-image fish-card-image--empty d-flex align-items-center justify-content-center text-muted">Imagem indisponível</div>
                 {% endif %}
-                <div class="card-body fish-card-body">
-                        <h2 class="fish-card-title">{{ peixe['nome_comum'] }}</h2>
-                        <p class="fish-card-scientific">{{ peixe['nome_cientifico'] }}</p>
-                        {% if peixe['is_owner'] %}
-                            <form method="post" action="{{ url_for('editar_nome_cientifico', peixe_id=peixe['id']) }}" class="mb-2">
-                                <label for="nome_cientifico_{{ peixe['id'] }}" class="form-label mb-1 small">Editar nome científico</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" id="nome_cientifico_{{ peixe['id'] }}" name="nome_cientifico" class="form-control" value="{{ peixe['nome_cientifico'] }}" required>
-                                    <button type="submit" class="btn btn-outline-primary">Salvar</button>
-                                </div>
-                            </form>
-                        {% endif %}
-                        <div class="fish-card-meta">
-                            <span class="fish-card-meta-item">📍 {{ peixe['regiao'] }}</span>
-                            <span class="fish-card-meta-item">👤 {{ peixe['usuario_nome'] }}</span>
-                            <span class="fish-card-meta-item">📅 {{ peixe['data_postagem'] }}</span>
+                <div class="fish-card-body">
+                    <div class="fish-card__header">
+                        <div>
+                            <h2 class="fish-card-title">{{ peixe['nome_comum'] }}</h2>
+                            <p class="fish-card-scientific">{{ peixe['nome_cientifico'] }}</p>
                         </div>
-                        <p class="card-text">{{ peixe['descricao'] }}</p>
+                        <span class="fish-card-badge"><i class="bi bi-geo-alt-fill"></i>{{ peixe['regiao'] }}</span>
+                    </div>
 
+                    <div class="fish-card-meta">
+                        <span class="fish-card-meta-item"><i class="bi bi-person"></i>{{ peixe['usuario_nome'] }}</span>
+                        <span class="fish-card-meta-item"><i class="bi bi-calendar3"></i>{{ peixe['data_postagem'] }}</span>
+                    </div>
+
+                    <p class="fish-card-description">{{ peixe['descricao'] or 'Registro visual disponível para consulta no catálogo.' }}</p>
+
+                    {% if peixe['is_owner'] %}
+                        <form method="post" action="{{ url_for('editar_nome_cientifico', peixe_id=peixe['id']) }}" class="fish-edit-form">
+                            <label for="nome_cientifico_{{ peixe['id'] }}" class="form-label form-label--small">Editar nome científico</label>
+                            <div class="fish-edit-form__row">
+                                <input type="text" id="nome_cientifico_{{ peixe['id'] }}" name="nome_cientifico" class="form-control" value="{{ peixe['nome_cientifico'] }}" required>
+                                <button type="submit" class="app-button app-button--inline"><i class="bi bi-pencil-square"></i><span>Editar</span></button>
+                            </div>
+                        </form>
+                    {% endif %}
+
+                    <div class="fish-card-actions">
                         {% if peixe['can_delete'] %}
                             <form method="post" action="{{ url_for('deletar_peixe', peixe_id=peixe['id']) }}" onsubmit="return confirm('Deseja excluir esta foto?');">
-                                <button type="submit" class="btn-delete-fish">🗑 Excluir foto</button>
+                                <button type="submit" class="app-button app-button--danger"><i class="bi bi-trash3"></i><span>Excluir</span></button>
                             </form>
                         {% elif peixe['delete_window_expired'] %}
-                            <small class="text-muted d-block mt-2">Prazo de 20 minutos expirado. Apenas administrador pode excluir agora.</small>
+                            <small class="fish-card-note">Prazo de 20 minutos expirado. Apenas administrador pode excluir agora.</small>
                         {% endif %}
+                    </div>
                 </div>
             </article>
         {% endfor %}
-    </div>
+    </section>
 
     <div class="fish-modal" id="fishImageModal" aria-hidden="true" role="dialog" aria-modal="true">
         <div class="fish-modal-content" role="document">
@@ -103,60 +122,10 @@
         </div>
     </div>
 {% else %}
-    <div class="alert alert-info mb-0" role="alert">
-        Nenhum peixe encontrado para os filtros informados.
-    </div>
+    <section class="empty-state surface-card" role="alert">
+        <div class="empty-state__icon"><i class="bi bi-search-heart"></i></div>
+        <h2 class="empty-state__title">Nenhum peixe encontrado</h2>
+        <p class="empty-state__text">Ajuste os filtros para continuar explorando o catálogo ou publique um novo registro.</p>
+    </section>
 {% endif %}
-
-<script>
-    (function () {
-        const modal = document.getElementById('fishImageModal');
-        const modalImage = document.getElementById('fishModalImage');
-        const closeButton = document.getElementById('fishModalClose');
-        const imageButtons = document.querySelectorAll('.fish-image-button');
-
-        if (!modal || !modalImage || !closeButton || !imageButtons.length) {
-            return;
-        }
-
-        function openModal(src, name) {
-            modalImage.src = src;
-            modalImage.alt = 'Imagem ampliada de ' + name;
-            modal.classList.add('is-open');
-            modal.setAttribute('aria-hidden', 'false');
-            document.body.classList.add('modal-open');
-        }
-
-        function closeModal() {
-            modal.classList.remove('is-open');
-            modal.setAttribute('aria-hidden', 'true');
-            modalImage.src = '';
-            document.body.classList.remove('modal-open');
-        }
-
-        imageButtons.forEach(function (button) {
-            button.addEventListener('click', function () {
-                const src = button.getAttribute('data-fish-image');
-                const name = button.getAttribute('data-fish-name') || 'peixe';
-                if (src) {
-                    openModal(src, name);
-                }
-            });
-        });
-
-        closeButton.addEventListener('click', closeModal);
-
-        modal.addEventListener('click', function (event) {
-            if (event.target === modal) {
-                closeModal();
-            }
-        });
-
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape' && modal.classList.contains('is-open')) {
-                closeModal();
-            }
-        });
-    })();
-</script>
 {% endblock %}

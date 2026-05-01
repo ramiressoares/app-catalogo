@@ -3,45 +3,52 @@
 {% block title %}Adicionar Peixe{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-body p-3 p-md-4">
-                <h1 class="h4 mb-3">Adicionar novo peixe</h1>
-
-                <form method="post" enctype="multipart/form-data" class="row g-3">
-                    <div class="col-12">
-                        <label for="imagem" class="form-label">Foto</label>
-                        <input type="file" name="foto" accept="image/*" required>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="nome_comum" class="form-label">Nome comum</label>
-                        <input type="text" class="form-control" id="nome_comum" name="nome_comum" required>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="nome_cientifico" class="form-label">Nome científico</label>
-                        <input type="text" class="form-control" id="nome_cientifico" name="nome_cientifico" required>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="regiao" class="form-label">Região</label>
-                        <input type="text" class="form-control" id="regiao" name="regiao" required>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="descricao" class="form-label">Descrição</label>
-                        <textarea class="form-control" id="descricao" name="descricao" rows="4" required></textarea>
-                    </div>
-
-                    <div class="col-12 d-grid d-sm-flex gap-2">
-                        <button type="submit" class="btn btn-primary mobile-full-btn">Salvar peixe</button>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary mobile-full-btn">Cancelar</a>
-                    </div>
-                </form>
-            </div>
+<section class="form-page form-page--wide">
+    <div class="section-heading section-heading--spaced">
+        <div>
+            <p class="section-heading__eyebrow">Publicação</p>
+            <h1 class="section-heading__title">Adicionar novo peixe</h1>
+            <p class="section-heading__text">Preencha os dados do registro e envie uma foto com boa qualidade para manter o catálogo organizado.</p>
         </div>
     </div>
-</div>
+
+    <div class="surface-card form-surface">
+        <form method="post" enctype="multipart/form-data" class="app-form app-form--two-columns">
+            <div class="app-form__field app-form__field--full">
+                <label for="imagem" class="form-label">Foto</label>
+                <label class="upload-field" for="imagem">
+                    <input type="file" id="imagem" name="foto" accept="image/*" required>
+                    <span class="upload-field__icon"><i class="bi bi-cloud-arrow-up"></i></span>
+                    <span class="upload-field__title">Selecione uma imagem</span>
+                    <span class="upload-field__text">PNG, JPG, JPEG, GIF ou WEBP</span>
+                </label>
+            </div>
+
+            <div class="app-form__field">
+                <label for="nome_comum" class="form-label">Nome comum</label>
+                <input type="text" class="form-control" id="nome_comum" name="nome_comum" required>
+            </div>
+
+            <div class="app-form__field">
+                <label for="nome_cientifico" class="form-label">Nome científico</label>
+                <input type="text" class="form-control" id="nome_cientifico" name="nome_cientifico" required>
+            </div>
+
+            <div class="app-form__field app-form__field--full">
+                <label for="regiao" class="form-label">Região</label>
+                <input type="text" class="form-control" id="regiao" name="regiao" required>
+            </div>
+
+            <div class="app-form__field app-form__field--full">
+                <label for="descricao" class="form-label">Descrição</label>
+                <textarea class="form-control" id="descricao" name="descricao" rows="5" required></textarea>
+            </div>
+
+            <div class="app-form__actions app-form__field--full">
+                <button type="submit" class="app-button"><i class="bi bi-check2-circle"></i><span>Salvar peixe</span></button>
+                <a href="{{ url_for('index') }}" class="app-button app-button--ghost"><i class="bi bi-arrow-left"></i><span>Cancelar</span></a>
+            </div>
+        </form>
+    </div>
+</section>
 {% endblock %}
