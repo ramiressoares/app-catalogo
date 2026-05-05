@@ -6,6 +6,8 @@
     var modalImage = document.getElementById('fishModalImage');
     var closeButton = document.getElementById('fishModalClose');
     var imageButtons = document.querySelectorAll('.fish-image-button');
+    var uploadInput = document.getElementById('imagem');
+    var uploadLabel = document.querySelector('[data-upload-label]');
 
     alerts.forEach(function (alertElement) {
         var timeout = Number(alertElement.getAttribute('data-auto-dismiss')) || 3000;
@@ -27,6 +29,13 @@
             }
         });
     });
+
+    if (uploadInput && uploadLabel) {
+        uploadInput.addEventListener('change', function () {
+            var fileName = uploadInput.files && uploadInput.files[0] ? uploadInput.files[0].name : 'Selecione uma imagem';
+            uploadLabel.textContent = fileName;
+        });
+    }
 
     if (modal && modalImage && closeButton && imageButtons.length) {
         function openModal(src, name) {
@@ -69,4 +78,38 @@
             }
         });
     }
+
+    // Curtidas
+    document.querySelectorAll('.like-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var peixeId = btn.getAttribute('data-peixe-id');
+            var countEl = document.querySelector('.like-count[data-peixe-id="' + peixeId + '"]');
+            var labelEl = countEl ? countEl.nextElementSibling : null;
+
+            fetch('/peixes/' + peixeId + '/curtir', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.curtido) {
+                    btn.classList.add('like-btn--active');
+                    btn.setAttribute('aria-pressed', 'true');
+                    btn.querySelector('i').className = 'bi bi-heart-fill';
+                } else {
+                    btn.classList.remove('like-btn--active');
+                    btn.setAttribute('aria-pressed', 'false');
+                    btn.querySelector('i').className = 'bi bi-heart';
+                }
+                if (countEl) {
+                    countEl.textContent = data.total;
+                }
+                if (labelEl) {
+                    labelEl.textContent = data.total === 1 ? 'curtida' : 'curtidas';
+                }
+            })
+            .catch(function () {});
+        });
+    });
 })();

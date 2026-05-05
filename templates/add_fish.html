@@ -3,23 +3,53 @@
 {% block title %}Adicionar Peixe{% endblock %}
 
 {% block content %}
-<section class="form-page form-page--wide">
-    <div class="section-heading section-heading--spaced">
-        <div>
-            <p class="section-heading__eyebrow">Publicação</p>
-            <h1 class="section-heading__title">Adicionar novo peixe</h1>
-            <p class="section-heading__text">Preencha os dados do registro e envie uma foto com boa qualidade para manter o catálogo organizado.</p>
-        </div>
-    </div>
+<section class="publish-shell">
+    <aside class="publish-aside surface-card">
+        <span class="publish-aside__eyebrow">Publicação guiada</span>
+        <h1 class="publish-aside__title">Crie um novo registro com aparência de aplicativo, não de formulário cru.</h1>
+        <p class="publish-aside__text">Organize a foto, os nomes e a origem do peixe em um fluxo mais claro, com boa leitura e melhor percepção de qualidade.</p>
 
-    <div class="surface-card form-surface">
+        <div class="publish-aside__steps">
+            <div class="publish-step">
+                <span class="publish-step__index">01</span>
+                <div>
+                    <strong>Envie a imagem</strong>
+                    <p>Escolha uma foto limpa para valorizar o card no catálogo.</p>
+                </div>
+            </div>
+            <div class="publish-step">
+                <span class="publish-step__index">02</span>
+                <div>
+                    <strong>Preencha os dados</strong>
+                    <p>Nome comum, científico, região e descrição em uma estrutura consistente.</p>
+                </div>
+            </div>
+            <div class="publish-step">
+                <span class="publish-step__index">03</span>
+                <div>
+                    <strong>Publique no feed</strong>
+                    <p>O registro entra no catálogo com visual reforçado e leitura rápida.</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="publish-main surface-card form-surface">
+        <div class="publish-header">
+            <div>
+                <p class="section-heading__eyebrow">Novo registro</p>
+                <h2 class="publish-header__title">Adicionar peixe</h2>
+            </div>
+            <span class="publish-header__badge"><i class="bi bi-stars"></i> Feed pronto para produção</span>
+        </div>
+
         <form method="post" enctype="multipart/form-data" class="app-form app-form--two-columns">
             <div class="app-form__field app-form__field--full">
                 <label for="imagem" class="form-label">Foto</label>
                 <label class="upload-field" for="imagem">
                     <input type="file" id="imagem" name="foto" accept="image/*" required>
                     <span class="upload-field__icon"><i class="bi bi-cloud-arrow-up"></i></span>
-                    <span class="upload-field__title">Selecione uma imagem</span>
+                    <span class="upload-field__title" data-upload-label>Selecione uma imagem</span>
                     <span class="upload-field__text">PNG, JPG, JPEG, GIF ou WEBP</span>
                 </label>
             </div>

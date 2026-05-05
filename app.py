@@ -8,7 +8,7 @@ import cloudinary
 import cloudinary.uploader
 import psycopg2
 import psycopg2.extras
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -126,6 +126,16 @@ def init_db() -> None:
 				usuario_id INTEGER,
 				comentario TEXT,
 				data TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			)
+			"""
+		)
+
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS curtidas (
+				peixe_id INTEGER NOT NULL,
+				usuario_id INTEGER NOT NULL,
+				PRIMARY KEY (peixe_id, usuario_id)
 			)
 			"""
 		)
@@ -369,14 +379,29 @@ def index():
 
 	query += " ORDER BY p.data_postagem DESC"
 
+	current_user_id = session.get("user_id")
+	current_user_is_admin = is_admin_user(current_user_id)
+
 	with get_db_connection() as conn:
 		peixes_db = conn.execute(query, params).fetchall()
 		regioes = conn.execute("SELECT DISTINCT regiao FROM peixes ORDER BY regiao").fetchall()
 		total_peixes = conn.execute("SELECT COUNT(*) FROM peixes").fetchone()[0]
 		total_pescadores = conn.execute("SELECT COUNT(DISTINCT usuario_id) FROM peixes").fetchone()[0]
 
-	current_user_id = session.get("user_id")
-	current_user_is_admin = is_admin_user(current_user_id)
+		# Busca contagens de curtidas e quais o usuario logado curtiu
+		curtidas_count = {
+			row["peixe_id"]: row["total"]
+			for row in conn.execute("SELECT peixe_id, COUNT(*) AS total FROM curtidas GROUP BY peixe_id").fetchall()
+		}
+		curtidas_usuario: set = set()
+		if current_user_id:
+			curtidas_usuario = {
+				row["peixe_id"]
+				for row in conn.execute(
+					"SELECT peixe_id FROM curtidas WHERE usuario_id = ?", (current_user_id,)
+				).fetchall()
+			}
+
 	peixes = []
 
 	for peixe in peixes_db:
@@ -390,6 +415,8 @@ def index():
 		peixe_dict["can_delete"] = can_delete_peixe(current_user_id, peixe_dict["usuario_id"], data_postagem_raw)
 		peixe_dict["delete_window_expired"] = peixe_dict["is_owner"] and not current_user_is_admin and not is_within_delete_window(data_postagem_raw)
 		peixe_dict["data_postagem"] = format_data_postagem(data_postagem_raw)
+		peixe_dict["curtidas"] = curtidas_count.get(peixe_dict["id"], 0)
+		peixe_dict["curtido"] = peixe_dict["id"] in curtidas_usuario
 		peixes.append(peixe_dict)
 
 	return render_template(
@@ -592,10 +619,41 @@ def adicionar_peixe():
 	return render_template("add_fish.html")
 
 
-init_db()
+@app.route("/peixes/<int:peixe_id>/curtir", methods=["POST"])
+@login_required
+def curtir_peixe(peixe_id: int):
+	"""Alterna curtida do usuario autenticado em um peixe. Retorna JSON."""
+	current_user_id = session.get("user_id")
 
-if os.getenv("AUTO_MIGRATE_LEGACY_IMAGES", "0") == "1":
-	migrate_legacy_images_to_cloudinary()
+	with get_db_connection() as conn:
+		peixe = conn.execute("SELECT id FROM peixes WHERE id = ?", (peixe_id,)).fetchone()
+		if not peixe:
+			return jsonify({"error": "Peixe nao encontrado."}), 404
+
+		ja_curtiu = conn.execute(
+			"SELECT 1 FROM curtidas WHERE peixe_id = ? AND usuario_id = ?",
+			(peixe_id, current_user_id),
+		).fetchone()
+
+		if ja_curtiu:
+			conn.execute(
+				"DELETE FROM curtidas WHERE peixe_id = ? AND usuario_id = ?",
+				(peixe_id, current_user_id),
+			)
+			curtido = False
+		else:
+			conn.execute(
+				"INSERT INTO curtidas (peixe_id, usuario_id) VALUES (?, ?)",
+				(peixe_id, current_user_id),
+			)
+			curtido = True
+
+		conn.commit()
+		total = conn.execute(
+			"SELECT COUNT(*) FROM curtidas WHERE peixe_id = ?", (peixe_id,)
+		).fetchone()[0]
+
+	return jsonify({"curtido": curtido, "total": total})
 
 
 if __name__ == "__main__":

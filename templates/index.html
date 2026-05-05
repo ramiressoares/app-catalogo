@@ -1,131 +1,202 @@
 {% extends 'base.html' %}
 
-{% block title %}Lista de Peixes{% endblock %}
+{% block title %}Catálogo de Peixes{% endblock %}
 
 {% block content %}
-<section class="catalog-hero section-stack">
-    <div class="catalog-hero__content">
-        <div class="catalog-hero__eyebrow">Catálogo colaborativo</div>
-        <h1 class="catalog-hero__title">Transforme registros de campo em um catálogo visual limpo, pesquisável e pronto para compartilhar.</h1>
-        <p class="catalog-hero__text">Organize espécies, acompanhe contribuições da comunidade e destaque a biodiversidade aquática com uma experiência moderna em qualquer tela.</p>
-        <div class="catalog-hero__actions">
-            {% if logged_user_id %}
-                <a href="{{ url_for('adicionar_peixe') }}" class="app-button app-button--hero"><i class="bi bi-plus-circle-fill"></i><span>Novo peixe</span></a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="app-button app-button--hero"><i class="bi bi-box-arrow-in-right"></i><span>Entrar para cadastrar</span></a>
-            {% endif %}
-        </div>
-    </div>
-    <div class="catalog-hero__panel" aria-label="Indicadores do catálogo">
-        <div class="hero-panel__item">
-            <span class="hero-panel__label">Peixes catalogados</span>
-            <strong class="hero-panel__value">{{ total_peixes }}</strong>
-        </div>
-        <div class="hero-panel__item">
-            <span class="hero-panel__label">Pescadores participantes</span>
-            <strong class="hero-panel__value">{{ total_pescadores }}</strong>
-        </div>
-    </div>
-</section>
+<div class="gram-layout">
 
-<section class="filter-panel section-stack">
-    <div class="section-heading">
-        <div>
-            <p class="section-heading__eyebrow">Explorar</p>
-            <h2 class="section-heading__title">Peixes cadastrados</h2>
-        </div>
-    </div>
+    <!-- Feed principal -->
+    <div class="gram-feed">
 
-    <div class="surface-card surface-card--filter">
-        <form method="get" class="filter-form">
-            <div class="filter-form__field">
-                <label for="q" class="form-label">Buscar por nome comum</label>
-                <div class="input-shell">
-                    <i class="bi bi-search"></i>
-                    <input type="text" class="form-control" id="q" name="q" placeholder="Ex: Tilápia" value="{{ q }}">
-                </div>
-            </div>
-            <div class="filter-form__field">
-                <label for="regiao" class="form-label">Filtrar por região</label>
-                <div class="input-shell">
-                    <i class="bi bi-geo-alt"></i>
-                    <select class="form-select" id="regiao" name="regiao">
-                        <option value="">Todas as regiões</option>
-                        {% for regiao in regioes %}
-                            <option value="{{ regiao }}" {% if regiao == regiao_selecionada %}selected{% endif %}>{{ regiao }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div class="filter-form__actions">
-                <button type="submit" class="app-button app-button--filter"><i class="bi bi-funnel-fill"></i><span>Aplicar</span></button>
-            </div>
-        </form>
-    </div>
-</section>
-
-{% if peixes %}
-    <section class="fish-grid section-stack" id="fishGrid">
-        {% for peixe in peixes %}
-            <article class="fish-card surface-card">
-                {% if peixe['imagem_src'] %}
-                    <button type="button" class="fish-image-button" data-fish-image="{{ peixe['imagem_src'] }}" data-fish-name="{{ peixe['nome_comum'] }}" aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
-                        <img src="{{ peixe['imagem_src'] }}" class="fish-card-image fish-image" alt="Foto de {{ peixe['nome_comum'] }}">
-                    </button>
-                {% else %}
-                    <div class="fish-card-image fish-card-image--empty d-flex align-items-center justify-content-center text-muted">Imagem indisponível</div>
-                {% endif %}
-                <div class="fish-card-body">
-                    <div class="fish-card__header">
-                        <div>
-                            <h2 class="fish-card-title">{{ peixe['nome_comum'] }}</h2>
-                            <p class="fish-card-scientific">{{ peixe['nome_cientifico'] }}</p>
-                        </div>
-                        <span class="fish-card-badge"><i class="bi bi-geo-alt-fill"></i>{{ peixe['regiao'] }}</span>
+        <!-- Barra de filtros -->
+        <div class="gram-filters surface-card">
+            <form method="get" class="filter-form filter-form--inline">
+                <div class="filter-form__field">
+                    <label for="q" class="form-label">Buscar</label>
+                    <div class="input-shell">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="form-control" id="q" name="q" placeholder="Nome do peixe…" value="{{ q }}">
                     </div>
-
-                    <div class="fish-card-meta">
-                        <span class="fish-card-meta-item"><i class="bi bi-person"></i>{{ peixe['usuario_nome'] }}</span>
-                        <span class="fish-card-meta-item"><i class="bi bi-calendar3"></i>{{ peixe['data_postagem'] }}</span>
+                </div>
+                <div class="filter-form__field">
+                    <label for="regiao" class="form-label">Região</label>
+                    <div class="input-shell">
+                        <i class="bi bi-geo-alt"></i>
+                        <select class="form-select" id="regiao" name="regiao">
+                            <option value="">Todas</option>
+                            {% for regiao in regioes %}
+                                <option value="{{ regiao }}" {% if regiao == regiao_selecionada %}selected{% endif %}>{{ regiao }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
+                </div>
+                <div class="filter-form__actions">
+                    <button type="submit" class="app-button app-button--filter"><i class="bi bi-funnel-fill"></i><span>Filtrar</span></button>
+                </div>
+            </form>
+        </div>
 
-                    <p class="fish-card-description">{{ peixe['descricao'] or 'Registro visual disponível para consulta no catálogo.' }}</p>
+        {% if peixes %}
+            <div id="fishGrid">
+                {% for peixe in peixes %}
+                    <article class="post">
 
-                    {% if peixe['is_owner'] %}
-                        <form method="post" action="{{ url_for('editar_nome_cientifico', peixe_id=peixe['id']) }}" class="fish-edit-form">
-                            <label for="nome_cientifico_{{ peixe['id'] }}" class="form-label form-label--small">Editar nome científico</label>
-                            <div class="fish-edit-form__row">
-                                <input type="text" id="nome_cientifico_{{ peixe['id'] }}" name="nome_cientifico" class="form-control" value="{{ peixe['nome_cientifico'] }}" required>
-                                <button type="submit" class="app-button app-button--inline"><i class="bi bi-pencil-square"></i><span>Editar</span></button>
+                        <!-- ① Cabeçalho: avatar · autor · região · data -->
+                        <div class="post-header">
+                            <span class="post-avatar">
+                                <i class="bi bi-person-fill"></i>
+                            </span>
+                            <div class="post-meta">
+                                <strong class="post-meta__name">{{ peixe['usuario_nome'] }}</strong>
+                                <div class="post-meta__sub">
+                                    <span class="post-tag post-tag--region">
+                                        <i class="bi bi-geo-alt-fill"></i>{{ peixe['regiao'] }}
+                                    </span>
+                                </div>
                             </div>
-                        </form>
-                    {% endif %}
+                            <time class="post-time" title="{{ peixe['data_postagem'] }}">{{ peixe['data_postagem'] }}</time>
+                        </div>
 
-                    <div class="fish-card-actions">
-                        {% if peixe['can_delete'] %}
-                            <form method="post" action="{{ url_for('deletar_peixe', peixe_id=peixe['id']) }}" onsubmit="return confirm('Deseja excluir esta foto?');">
-                                <button type="submit" class="app-button app-button--danger"><i class="bi bi-trash3"></i><span>Excluir</span></button>
-                            </form>
-                        {% elif peixe['delete_window_expired'] %}
-                            <small class="fish-card-note">Prazo de 20 minutos expirado. Apenas administrador pode excluir agora.</small>
+                        <!-- ② Imagem quadrada 1:1 -->
+                        <div class="post-media">
+                            {% if peixe['imagem_src'] %}
+                                <button type="button"
+                                        class="fish-image-button"
+                                        data-fish-image="{{ peixe['imagem_src'] }}"
+                                        data-fish-name="{{ peixe['nome_comum'] }}"
+                                        aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
+                                    <img src="{{ peixe['imagem_src'] }}"
+                                         class="fish-image"
+                                         alt="Foto de {{ peixe['nome_comum'] }}"
+                                         loading="lazy">
+                                </button>
+                            {% else %}
+                                <div class="post-media--empty" aria-label="Imagem indisponível">
+                                    <i class="bi bi-camera" aria-hidden="true"></i>
+                                    <span>Sem imagem</span>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ③ Legenda -->
+                        <div class="post-caption">
+                            <div class="post-species">
+                                <h2 class="post-species__name">{{ peixe['nome_comum'] }}</h2>
+                                <p class="post-species__scientific">{{ peixe['nome_cientifico'] }}</p>
+                            </div>
+                            {% if peixe['descricao'] %}
+                                <p class="post-caption__text">{{ peixe['descricao'] }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- ④ Barra de curtidas -->
+                        <div class="post-likes">
+                            <button type="button"
+                                    class="like-btn {% if peixe['curtido'] %}like-btn--active{% endif %}"
+                                    data-peixe-id="{{ peixe['id'] }}"
+                                    aria-label="Curtir {{ peixe['nome_comum'] }}"
+                                    aria-pressed="{{ 'true' if peixe['curtido'] else 'false' }}">
+                                <i class="bi {% if peixe['curtido'] %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                            </button>
+                            <span class="like-count" data-peixe-id="{{ peixe['id'] }}">{{ peixe['curtidas'] }}</span>
+                            <span class="like-label">{{ 'curtida' if peixe['curtidas'] == 1 else 'curtidas' }}</span>
+                        </div>
+
+                        <!-- ④ Rodapé com ações (só renderiza se houver conteúdo) -->
+                        {% if peixe['is_owner'] or peixe['can_delete'] or peixe['delete_window_expired'] %}
+                            <div class="post-footer">
+
+                                {% if peixe['is_owner'] %}
+                                    <form method="post"
+                                          action="{{ url_for('editar_nome_cientifico', peixe_id=peixe['id']) }}"
+                                          class="post-edit-form">
+                                        <label for="nc_{{ peixe['id'] }}" class="form-label form-label--small">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i> Nome científico
+                                        </label>
+                                        <div class="post-edit-form__row">
+                                            <input type="text"
+                                                   id="nc_{{ peixe['id'] }}"
+                                                   name="nome_cientifico"
+                                                   class="form-control form-control--sm"
+                                                   value="{{ peixe['nome_cientifico'] }}"
+                                                   required>
+                                            <button type="submit" class="app-button app-button--sm post-edit-btn">
+                                                <i class="bi bi-check-lg"></i><span>Salvar</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                {% endif %}
+
+                                {% if peixe['can_delete'] %}
+                                    <form method="post"
+                                          action="{{ url_for('deletar_peixe', peixe_id=peixe['id']) }}"
+                                          onsubmit="return confirm('Deseja excluir este registro?');"
+                                          class="post-delete-form">
+                                        <button type="submit" class="app-button app-button--danger app-button--sm post-delete-btn">
+                                            <i class="bi bi-trash3"></i><span>Excluir registro</span>
+                                        </button>
+                                    </form>
+                                {% elif peixe['delete_window_expired'] %}
+                                    <p class="post-note"><i class="bi bi-clock-history"></i> Prazo de 20 min expirado. Somente administrador pode excluir.</p>
+                                {% endif %}
+
+                            </div>
                         {% endif %}
-                    </div>
-                </div>
-            </article>
-        {% endfor %}
-    </section>
 
-    <div class="fish-modal" id="fishImageModal" aria-hidden="true" role="dialog" aria-modal="true">
-        <div class="fish-modal-content" role="document">
-            <button type="button" class="fish-modal-close" id="fishModalClose" aria-label="Fechar visualizador">&times;</button>
-            <img src="" alt="Imagem ampliada do peixe" id="fishModalImage" class="fish-modal-image">
+                    </article>
+                {% endfor %}
+            </div>
+
+            <div class="fish-modal" id="fishImageModal" aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="fish-modal-content" role="document">
+                    <button type="button" class="fish-modal-close" id="fishModalClose" aria-label="Fechar visualizador">&times;</button>
+                    <img src="" alt="Imagem ampliada do peixe" id="fishModalImage" class="fish-modal-image">
+                </div>
+            </div>
+
+        {% else %}
+            <section class="empty-state surface-card" role="alert">
+                <div class="empty-state__icon"><i class="bi bi-search-heart"></i></div>
+                <h2 class="empty-state__title">Nenhum peixe encontrado</h2>
+                <p class="empty-state__text">Ajuste os filtros para continuar explorando ou publique um novo registro.</p>
+            </section>
+        {% endif %}
+
+    </div><!-- /gram-feed -->
+
+    <!-- Sidebar direita -->
+    <aside class="gram-sidebar">
+
+        <div class="gram-about surface-card">
+            <span class="gram-about__eyebrow">Catálogo</span>
+            <h2 class="gram-about__title">Biodiversidade<br>aquática</h2>
+            <p class="gram-about__text">Registros de espécies de peixes feitos por pescadores de todo o Brasil.</p>
         </div>
-    </div>
-{% else %}
-    <section class="empty-state surface-card" role="alert">
-        <div class="empty-state__icon"><i class="bi bi-search-heart"></i></div>
-        <h2 class="empty-state__title">Nenhum peixe encontrado</h2>
-        <p class="empty-state__text">Ajuste os filtros para continuar explorando o catálogo ou publique um novo registro.</p>
-    </section>
-{% endif %}
+
+        <div class="gram-stats surface-card">
+            <div class="gram-stat-row">
+                <span class="gram-stat-row__icon"><i class="bi bi-water"></i></span>
+                <div>
+                    <span class="gram-stat-row__label">Peixes catalogados</span>
+                    <strong class="gram-stat-row__value">{{ total_peixes }}</strong>
+                </div>
+            </div>
+            <div class="gram-stat-row">
+                <span class="gram-stat-row__icon"><i class="bi bi-people"></i></span>
+                <div>
+                    <span class="gram-stat-row__label">Pescadores ativos</span>
+                    <strong class="gram-stat-row__value">{{ total_pescadores }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {% if logged_user_id %}
+            <a href="{{ url_for('adicionar_peixe') }}" class="app-button app-button--block"><i class="bi bi-plus-circle-fill"></i><span>Publicar novo peixe</span></a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="app-button app-button--block"><i class="bi bi-box-arrow-in-right"></i><span>Entrar para publicar</span></a>
+        {% endif %}
+
+    </aside><!-- /gram-sidebar -->
+
+</div><!-- /gram-layout -->
 {% endblock %}
