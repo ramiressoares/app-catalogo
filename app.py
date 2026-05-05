@@ -389,18 +389,22 @@ def index():
 		total_pescadores = conn.execute("SELECT COUNT(DISTINCT usuario_id) FROM peixes").fetchone()[0]
 
 		# Busca contagens de curtidas e quais o usuario logado curtiu
-		curtidas_count = {
-			row["peixe_id"]: row["total"]
-			for row in conn.execute("SELECT peixe_id, COUNT(*) AS total FROM curtidas GROUP BY peixe_id").fetchall()
-		}
-		curtidas_usuario: set = set()
-		if current_user_id:
-			curtidas_usuario = {
-				row["peixe_id"]
-				for row in conn.execute(
-					"SELECT peixe_id FROM curtidas WHERE usuario_id = ?", (current_user_id,)
-				).fetchall()
+		try:
+			curtidas_count = {
+				row["peixe_id"]: row["total"]
+				for row in conn.execute("SELECT peixe_id, COUNT(*) AS total FROM curtidas GROUP BY peixe_id").fetchall()
 			}
+			curtidas_usuario: set = set()
+			if current_user_id:
+				curtidas_usuario = {
+					row["peixe_id"]
+					for row in conn.execute(
+						"SELECT peixe_id FROM curtidas WHERE usuario_id = ?", (current_user_id,)
+					).fetchall()
+				}
+		except Exception:
+			curtidas_count = {}
+			curtidas_usuario = set()
 
 	peixes = []
 
@@ -655,6 +659,8 @@ def curtir_peixe(peixe_id: int):
 
 	return jsonify({"curtido": curtido, "total": total})
 
+
+init_db()
 
 if __name__ == "__main__":
 	app.run()
