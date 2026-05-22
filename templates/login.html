@@ -39,6 +39,8 @@
             </div>
 
             <form method="post" class="app-form">
+                <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
                 <div class="app-form__field">
                     <label for="email" class="form-label">E-mail</label>
                     <input type="email" class="form-control" id="email" name="email" placeholder="seuemail@dominio.com" required>

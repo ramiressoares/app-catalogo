@@ -434,7 +434,8 @@ def login_required(f):
 	@wraps(f)
 	def decorated_function(*args, **kwargs):
 		if "user_id" not in session:
-			return redirect(url_for("login"))
+			flash("Faça login para publicar e acompanhar os registros.", "warning")
+			return redirect(url_for("login", next=request.url))
 		return f(*args, **kwargs)
 	return decorated_function
 
@@ -589,6 +590,7 @@ def login():
 	if request.method == "POST":
 		email = request.form.get("email", "").strip().lower()
 		senha = request.form.get("senha", "")
+		next_url = request.form.get("next") or request.args.get("next")
 
 		with get_db_connection() as conn:
 			user = conn.execute("SELECT * FROM usuarios WHERE email = ?", (email,)).fetchone()
@@ -600,7 +602,7 @@ def login():
 		session["user_id"] = user["id"]
 		session["user_nome"] = user["nome"]
 		flash("Acesso realizado com sucesso.", "success")
-		return redirect(url_for("index"))
+		return redirect(next_url or url_for("index"))
 
 	return render_template("login.html")
 
