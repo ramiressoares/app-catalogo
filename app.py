@@ -561,14 +561,14 @@ def registrar():
 		senha = request.form.get("senha", "")
 
 		if not nome or not email or not senha:
-			flash("Preencha nome, e-mail e senha.", "danger")
+			flash("Preencha nome, e-mail e senha para concluir seu cadastro.", "danger")
 			return redirect(url_for("registrar"))
 
 		senha_hash = generate_password_hash(senha)
 		with get_db_connection() as conn:
 			existing_user = conn.execute("SELECT id FROM usuarios WHERE email = ?", (email,)).fetchone()
 			if existing_user:
-				flash("Este e-mail ja esta cadastrado.", "warning")
+				flash("Ja existe uma conta vinculada a este e-mail.", "warning")
 				return redirect(url_for("registrar"))
 
 			conn.execute(
@@ -577,7 +577,7 @@ def registrar():
 			)
 			conn.commit()
 
-		flash("Conta criada com sucesso. Faca login.", "success")
+		flash("Cadastro concluido com sucesso. Entre para iniciar sua participacao.", "success")
 		return redirect(url_for("login"))
 
 	return render_template("register.html")
@@ -594,12 +594,12 @@ def login():
 			user = conn.execute("SELECT * FROM usuarios WHERE email = ?", (email,)).fetchone()
 
 		if not user or not check_password_hash(user["senha"], senha):
-			flash("E-mail ou senha invalidos.", "danger")
+			flash("Nao foi possivel validar seu acesso. Revise e-mail e senha.", "danger")
 			return redirect(url_for("login"))
 
 		session["user_id"] = user["id"]
 		session["user_nome"] = user["nome"]
-		flash("Login realizado com sucesso!", "success")
+		flash("Acesso realizado com sucesso.", "success")
 		return redirect(url_for("index"))
 
 	return render_template("login.html")
@@ -609,7 +609,7 @@ def login():
 def logout():
 	"""Finaliza a sessao atual."""
 	session.clear()
-	flash("Voce saiu da sua conta.", "info")
+	flash("Sua sessao foi encerrada com seguranca.", "info")
 	return redirect(url_for("boas_vindas"))
 
 
@@ -625,17 +625,17 @@ def deletar_peixe(peixe_id: int):
 		).fetchone()
 
 		if not peixe:
-			flash("Peixe nao encontrado.", "warning")
+			flash("O registro solicitado nao foi localizado.", "warning")
 			return redirect(url_for("index"))
 
 		if not can_delete_peixe(current_user_id, peixe["usuario_id"], peixe["data_postagem"]):
-			flash("Voce so pode excluir sua foto em ate 20 minutos apos a postagem. Depois disso, apenas administrador.", "danger")
+			flash("A remocao pelo autor fica disponivel por ate 20 minutos apos a publicacao. Depois disso, a exclusao fica restrita a administracao.", "danger")
 			return redirect(url_for("index"))
 
 		conn.execute("DELETE FROM peixes WHERE id = ?", (peixe_id,))
 		conn.commit()
 
-	flash("Foto removida com sucesso.", "success")
+	flash("Registro removido do catalogo com sucesso.", "success")
 	return redirect(url_for("index"))
 
 
@@ -646,7 +646,7 @@ def editar_nome_cientifico(peixe_id: int):
 	novo_nome_cientifico = request.form.get("nome_cientifico", "").strip()
 
 	if not novo_nome_cientifico:
-		flash("Informe um nome cientifico valido.", "danger")
+		flash("Informe um nome cientifico valido para atualizar o registro.", "danger")
 		return redirect(url_for("index"))
 
 	with get_db_connection() as conn:
@@ -656,11 +656,11 @@ def editar_nome_cientifico(peixe_id: int):
 		).fetchone()
 
 		if not peixe:
-			flash("Peixe nao encontrado.", "warning")
+			flash("O registro solicitado nao foi localizado.", "warning")
 			return redirect(url_for("index"))
 
 		if peixe["usuario_id"] != current_user_id:
-			flash("Apenas o dono da foto pode editar o nome cientifico.", "danger")
+			flash("Somente o autor do registro pode atualizar o nome cientifico.", "danger")
 			return redirect(url_for("index"))
 
 		conn.execute(
@@ -685,38 +685,38 @@ def adicionar_peixe():
 		file = request.files.get("foto")
 
 		if not all([nome_comum, nome_cientifico, regiao]):
-			flash("Preencha todos os campos de texto.", "danger")
+			flash("Preencha os campos principais do registro antes de publicar.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		if not file or file.filename == "":
-			flash("Selecione uma imagem para o peixe.", "danger")
+			flash("Selecione uma imagem para compor o registro.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		if not allowed_file(file.filename):
-			flash("Formato de imagem invalido. Use PNG, JPG, JPEG, GIF ou WEBP.", "danger")
+			flash("Formato de imagem nao suportado. Utilize PNG, JPG, JPEG, GIF ou WEBP.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		missing_vars = get_missing_cloudinary_vars()
 		if missing_vars:
 			app.logger.error("Upload bloqueado: Cloudinary sem configuracao. Variaveis ausentes: %s", ", ".join(missing_vars))
-			flash("Configuracao de upload ausente no servidor (Cloudinary).", "danger")
+			flash("O servico de envio de imagens nao esta disponivel no momento.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		try:
 			result = cloudinary.uploader.upload(file.stream)
 		except Exception as exc:
 			app.logger.exception("Erro ao enviar imagem para o Cloudinary: %s", exc)
-			flash(f"Erro Cloudinary: {exc}", "danger")
+			flash("Nao foi possivel enviar a imagem agora. Tente novamente em instantes.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		if "secure_url" not in result:
 			app.logger.error("Resposta do Cloudinary sem secure_url: %s", result)
-			flash("Cloudinary nao retornou URL segura da imagem.", "danger")
+			flash("A imagem foi recebida, mas o servidor nao retornou um endereco valido para publicacao.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		image_url = result["secure_url"]
 		if not image_url:
-			flash("Cloudinary nao retornou URL da imagem.", "danger")
+			flash("Nao foi possivel concluir o vinculo da imagem ao registro.", "danger")
 			return redirect(url_for("adicionar_peixe"))
 
 		with get_db_connection() as conn:
@@ -735,7 +735,7 @@ def adicionar_peixe():
 			)
 			conn.commit()
 
-		flash("Peixe cadastrado com sucesso!", "success")
+		flash("Registro publicado com sucesso no catalogo.", "success")
 		return redirect(url_for("index"))
 
 	return render_template("add_fish.html")
@@ -750,7 +750,7 @@ def curtir_peixe(peixe_id: int):
 	with get_db_connection() as conn:
 		peixe = conn.execute("SELECT id FROM peixes WHERE id = ?", (peixe_id,)).fetchone()
 		if not peixe:
-			return jsonify({"error": "Peixe nao encontrado."}), 404
+			return jsonify({"error": "Registro nao encontrado."}), 404
 
 		ja_curtiu = conn.execute(
 			"SELECT 1 FROM curtidas WHERE peixe_id = ? AND usuario_id = ?",
@@ -794,22 +794,22 @@ def comentar_peixe(peixe_id: int):
 
 	if not comentario:
 		if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-			return jsonify({"error": "Comentario vazio."}), 400
-		flash("Escreva um comentario antes de enviar.", "warning")
+			return jsonify({"error": "Escreva uma contribuicao antes de publicar."}), 400
+		flash("Escreva uma contribuicao antes de publicar.", "warning")
 		return redirect(url_for("index"))
 
 	if len(comentario) > 300:
 		if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-			return jsonify({"error": "Comentario muito longo (maximo de 300 caracteres)."}), 400
-		flash("Comentario muito longo (maximo de 300 caracteres).", "warning")
+			return jsonify({"error": "Sua contribuicao excede o limite de 300 caracteres."}), 400
+		flash("Sua contribuicao excede o limite de 300 caracteres.", "warning")
 		return redirect(url_for("index"))
 
 	with get_db_connection() as conn:
 		peixe = conn.execute("SELECT id FROM peixes WHERE id = ?", (peixe_id,)).fetchone()
 		if not peixe:
 			if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-				return jsonify({"error": "Peixe nao encontrado."}), 404
-			flash("Peixe nao encontrado.", "danger")
+				return jsonify({"error": "Registro nao encontrado."}), 404
+			flash("O registro informado nao foi localizado.", "danger")
 			return redirect(url_for("index"))
 
 		comment_row = conn.execute(
@@ -845,7 +845,7 @@ def comentar_peixe(peixe_id: int):
 			}
 		)
 
-	flash("Comentario publicado.", "success")
+	flash("Contribuicao publicada com sucesso.", "success")
 	return redirect(url_for("index"))
 
 
@@ -861,7 +861,7 @@ def curtir_comentario(comentario_id: int):
 			(comentario_id,),
 		).fetchone()
 		if not comentario:
-			return jsonify({"error": "Comentario nao encontrado."}), 404
+			return jsonify({"error": "Contribuicao nao encontrada."}), 404
 
 		ja_curtiu = conn.execute(
 			"SELECT 1 FROM comentario_curtidas WHERE comentario_id = ? AND usuario_id = ?",

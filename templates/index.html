@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Catálogo de Peixes{% endblock %}
+{% block title %}FishCatalog | Registros Aquáticos{% endblock %}
 {% block page_id %}index{% endblock %}
 
 {% block content %}
@@ -20,7 +20,7 @@
                         class="comment-like-btn {% if comentario['curtido'] %}is-active{% endif %}"
                         data-comment-like="{{ comentario['id'] }}"
                         aria-pressed="{{ 'true' if comentario['curtido'] else 'false' }}"
-                        aria-label="Curtir comentário de {{ comentario['usuario_nome'] }}">
+                    aria-label="Apoiar comentário de {{ comentario['usuario_nome'] }}">
                     <i class="bi {% if comentario['curtido'] %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
                     <span data-comment-like-count="{{ comentario['id'] }}">{{ comentario['curtidas'] }}</span>
                 </button>
@@ -50,11 +50,11 @@
                     name="comentario"
                     class="form-control"
                     maxlength="300"
-                    placeholder="Escreva uma resposta..."
+                    placeholder="Escreva uma resposta objetiva e respeitosa..."
                     required>
                 <button type="submit" class="app-button app-button--sm">
                     <i class="bi bi-send"></i>
-                    <span>Responder</span>
+                    <span>Publicar</span>
                 </button>
             </form>
 
@@ -74,9 +74,9 @@
     <div class="gram-feed">
         <section class="feed-hero surface-card">
             <div>
-                <span class="feed-hero__eyebrow">FishCatalog Mobile</span>
-                <h1 class="feed-hero__title">Feed aquático com cara de aplicativo premium</h1>
-                <p class="feed-hero__text">Explore espécies em um fluxo visual mais limpo, com leitura rápida, ações diretas e foco total em experiência mobile.</p>
+                <span class="feed-hero__eyebrow">Biodiversidade em rede</span>
+                <h1 class="feed-hero__title">Registros que aproximam ciência, território e preservação.</h1>
+                <p class="feed-hero__text">Explore espécies catalogadas por uma comunidade colaborativa e acompanhe informações que fortalecem educação ambiental e consciência ecológica.</p>
             </div>
             <div class="feed-hero__meta">
                 <div class="feed-metric">
@@ -85,7 +85,7 @@
                 </div>
                 <div class="feed-metric">
                     <strong>{{ total_pescadores }}</strong>
-                    <span>autores</span>
+                    <span>colaboradores</span>
                 </div>
             </div>
         </section>
@@ -93,18 +93,18 @@
         <div class="gram-filters surface-card">
             <form method="get" class="filter-form filter-form--inline">
                 <div class="filter-form__field">
-                    <label for="q" class="form-label">Buscar</label>
+                    <label for="q" class="form-label">Buscar espécie</label>
                     <div class="input-shell">
                         <i class="bi bi-search"></i>
-                        <input type="text" class="form-control" id="q" name="q" placeholder="Ex.: Tilápia, Tambaqui..." value="{{ q }}">
+                        <input type="text" class="form-control" id="q" name="q" placeholder="Busque por nome comum ou científico" value="{{ q }}">
                     </div>
                 </div>
                 <div class="filter-form__field">
-                    <label for="regiao" class="form-label">Região</label>
+                    <label for="regiao" class="form-label">Território</label>
                     <div class="input-shell">
                         <i class="bi bi-geo-alt"></i>
                         <select class="form-select" id="regiao" name="regiao">
-                            <option value="">Todas</option>
+                            <option value="">Todas as regiões</option>
                             {% for regiao in regioes %}
                                 <option value="{{ regiao }}" {% if regiao == regiao_selecionada %}selected{% endif %}>{{ regiao }}</option>
                             {% endfor %}
@@ -112,7 +112,7 @@
                     </div>
                 </div>
                 <div class="filter-form__actions">
-                    <button type="submit" class="app-button app-button--filter"><i class="bi bi-funnel-fill"></i><span>Filtrar</span></button>
+                    <button type="submit" class="app-button app-button--filter"><i class="bi bi-funnel-fill"></i><span>Refinar busca</span></button>
                 </div>
             </form>
         </div>
@@ -143,16 +143,16 @@
                                         class="fish-image-button"
                                         data-fish-image="{{ peixe['imagem_src'] }}"
                                         data-fish-name="{{ peixe['nome_comum'] }}"
-                                        aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
+                                        aria-label="Ampliar registro visual de {{ peixe['nome_comum'] }}">
                                     <img src="{{ peixe['imagem_src'] }}"
                                          class="fish-image fish-image--loading"
-                                         alt="Foto de {{ peixe['nome_comum'] }}"
+                                         alt="Registro visual de {{ peixe['nome_comum'] }}"
                                          loading="lazy">
                                 </button>
                             {% else %}
                                 <div class="post-media--empty" aria-label="Imagem indisponível">
                                     <i class="bi bi-camera" aria-hidden="true"></i>
-                                    <span>Sem imagem</span>
+                                    <span>Registro sem imagem</span>
                                 </div>
                             {% endif %}
                         </div>
@@ -171,7 +171,7 @@
                             <button type="button"
                                     class="like-btn {% if peixe['curtido'] %}like-btn--active{% endif %}"
                                     data-peixe-id="{{ peixe['id'] }}"
-                                    aria-label="Curtir {{ peixe['nome_comum'] }}"
+                                    aria-label="Apoiar registro de {{ peixe['nome_comum'] }}"
                                     aria-pressed="{{ 'true' if peixe['curtido'] else 'false' }}">
                                 <i class="bi {% if peixe['curtido'] %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
                             </button>
@@ -181,14 +181,14 @@
                                     data-comment-toggle="{{ peixe['id'] }}"
                                     aria-expanded="false"
                                     aria-controls="comments-{{ peixe['id'] }}"
-                                    aria-label="Abrir comentários de {{ peixe['nome_comum'] }}">
+                                    aria-label="Abrir conversa do registro {{ peixe['nome_comum'] }}">
                                 <i class="bi bi-chat-dots"></i>
                             </button>
 
                             <span class="post-actions__spacer"></span>
 
                             <span class="like-count" data-peixe-id="{{ peixe['id'] }}">{{ peixe['curtidas'] }}</span>
-                            <span class="like-label" data-like-label="{{ peixe['id'] }}">{{ 'curtida' if peixe['curtidas'] == 1 else 'curtidas' }}</span>
+                            <span class="like-label" data-like-label="{{ peixe['id'] }}">{{ 'apoio' if peixe['curtidas'] == 1 else 'apoios' }}</span>
 
                             <i class="bi bi-dot post-dot"></i>
 
@@ -201,23 +201,23 @@
                                 {% if peixe['comentarios_preview'] %}
                                     {{ render_comment_tree(peixe['comentarios_preview'], peixe['id']) }}
                                 {% else %}
-                                    <p class="post-comments__empty" data-comment-empty="{{ peixe['id'] }}">Nenhum comentário ainda. Seja o primeiro a comentar.</p>
+                                    <p class="post-comments__empty" data-comment-empty="{{ peixe['id'] }}">Ainda não há contribuições. Inicie a conversa deste registro.</p>
                                 {% endif %}
                             </div>
 
                             <form method="post" action="{{ url_for('comentar_peixe', peixe_id=peixe['id']) }}" class="comment-form" data-comment-form="{{ peixe['id'] }}">
-                                <label for="comentario_{{ peixe['id'] }}" class="visually-hidden">Comentário</label>
+                                <label for="comentario_{{ peixe['id'] }}" class="visually-hidden">Nova contribuição</label>
                                 <input
                                     type="text"
                                     id="comentario_{{ peixe['id'] }}"
                                     name="comentario"
                                     class="form-control"
                                     maxlength="300"
-                                    placeholder="Escreva um comentário rápido..."
+                                    placeholder="Escreva uma observação, complemento ou pergunta..."
                                     required>
                                 <button type="submit" class="app-button app-button--sm">
                                     <i class="bi bi-send"></i>
-                                    <span>Enviar</span>
+                                    <span>Publicar</span>
                                 </button>
                             </form>
                         </section>
@@ -230,7 +230,7 @@
                                           action="{{ url_for('editar_nome_cientifico', peixe_id=peixe['id']) }}"
                                           class="post-edit-form">
                                         <label for="nc_{{ peixe['id'] }}" class="form-label form-label--small">
-                                            <i class="bi bi-pencil" aria-hidden="true"></i> Nome científico
+                                            <i class="bi bi-pencil" aria-hidden="true"></i> Atualizar nome científico
                                         </label>
                                         <div class="post-edit-form__row">
                                             <input type="text"
@@ -240,7 +240,7 @@
                                                    value="{{ peixe['nome_cientifico'] }}"
                                                    required>
                                             <button type="submit" class="app-button app-button--sm post-edit-btn">
-                                                <i class="bi bi-check-lg"></i><span>Salvar</span>
+                                                <i class="bi bi-check-lg"></i><span>Atualizar</span>
                                             </button>
                                         </div>
                                     </form>
@@ -249,14 +249,14 @@
                                 {% if peixe['can_delete'] %}
                                     <form method="post"
                                           action="{{ url_for('deletar_peixe', peixe_id=peixe['id']) }}"
-                                          onsubmit="return confirm('Deseja excluir este registro?');"
+                                          onsubmit="return confirm('Deseja remover este registro do catálogo?');"
                                           class="post-delete-form">
                                         <button type="submit" class="app-button app-button--danger app-button--sm post-delete-btn">
-                                            <i class="bi bi-trash3"></i><span>Excluir registro</span>
+                                            <i class="bi bi-trash3"></i><span>Remover registro</span>
                                         </button>
                                     </form>
                                 {% elif peixe['delete_window_expired'] %}
-                                    <p class="post-note"><i class="bi bi-clock-history"></i> Prazo de 20 min expirado. Somente administrador pode excluir.</p>
+                                    <p class="post-note"><i class="bi bi-clock-history"></i> A janela de remoção foi encerrada. Após esse prazo, a exclusão fica restrita à administração.</p>
                                 {% endif %}
 
                             </div>
@@ -268,16 +268,16 @@
 
             <div class="fish-modal" id="fishImageModal" aria-hidden="true" role="dialog" aria-modal="true">
                 <div class="fish-modal-content" role="document">
-                    <button type="button" class="fish-modal-close" id="fishModalClose" aria-label="Fechar visualizador">&times;</button>
-                    <img src="" alt="Imagem ampliada do peixe" id="fishModalImage" class="fish-modal-image">
+                    <button type="button" class="fish-modal-close" id="fishModalClose" aria-label="Fechar imagem ampliada">&times;</button>
+                    <img src="" alt="Imagem ampliada do registro" id="fishModalImage" class="fish-modal-image">
                 </div>
             </div>
 
         {% else %}
             <section class="empty-state surface-card" role="alert">
                 <div class="empty-state__icon"><i class="bi bi-search-heart"></i></div>
-                <h2 class="empty-state__title">Nenhum peixe encontrado</h2>
-                <p class="empty-state__text">Ajuste os filtros para continuar explorando ou publique um novo registro.</p>
+                <h2 class="empty-state__title">Nenhum registro encontrado</h2>
+                <p class="empty-state__text">Revise os filtros ou publique uma nova observação para ampliar a base do catálogo.</p>
             </section>
         {% endif %}
 
@@ -286,32 +286,32 @@
     <aside class="gram-sidebar">
 
         <div class="gram-about surface-card">
-            <span class="gram-about__eyebrow">Catálogo</span>
-            <h2 class="gram-about__title">Biodiversidade<br>aquática</h2>
-            <p class="gram-about__text">Registros de espécies de peixes feitos por pescadores de todo o Brasil.</p>
+            <span class="gram-about__eyebrow">Pesquisa e preservação</span>
+            <h2 class="gram-about__title">Biodiversidade<br>aquática brasileira</h2>
+            <p class="gram-about__text">Uma plataforma colaborativa para documentar espécies, apoiar educação ambiental e ampliar o conhecimento sobre ambientes aquáticos.</p>
         </div>
 
         <div class="gram-stats surface-card">
             <div class="gram-stat-row">
                 <span class="gram-stat-row__icon"><i class="bi bi-water"></i></span>
                 <div>
-                    <span class="gram-stat-row__label">Peixes catalogados</span>
+                    <span class="gram-stat-row__label">Registros publicados</span>
                     <strong class="gram-stat-row__value">{{ total_peixes }}</strong>
                 </div>
             </div>
             <div class="gram-stat-row">
                 <span class="gram-stat-row__icon"><i class="bi bi-people"></i></span>
                 <div>
-                    <span class="gram-stat-row__label">Pescadores ativos</span>
+                    <span class="gram-stat-row__label">Autores ativos</span>
                     <strong class="gram-stat-row__value">{{ total_pescadores }}</strong>
                 </div>
             </div>
         </div>
 
         {% if logged_user_id %}
-            <a href="{{ url_for('adicionar_peixe') }}" class="app-button app-button--block"><i class="bi bi-plus-circle-fill"></i><span>Publicar novo peixe</span></a>
+            <a href="{{ url_for('adicionar_peixe') }}" class="app-button app-button--block"><i class="bi bi-plus-circle-fill"></i><span>Registrar nova espécie</span></a>
         {% else %}
-            <a href="{{ url_for('login') }}" class="app-button app-button--block"><i class="bi bi-box-arrow-in-right"></i><span>Entrar para publicar</span></a>
+            <a href="{{ url_for('login') }}" class="app-button app-button--block"><i class="bi bi-box-arrow-in-right"></i><span>Acessar para contribuir</span></a>
         {% endif %}
 
     </aside>

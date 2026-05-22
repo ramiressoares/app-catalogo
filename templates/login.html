@@ -1,28 +1,28 @@
 {% extends 'base.html' %}
 
-{% block title %}Login{% endblock %}
+{% block title %}FishCatalog | Acessar{% endblock %}
 {% block page_id %}login{% endblock %}
 
 {% block content %}
 <section class="auth-layout">
     <div class="auth-layout__panel auth-layout__panel--intro">
         <div class="auth-hero">
-            <span class="auth-hero__eyebrow">Plataforma colaborativa</span>
-            <h1 class="auth-hero__title">Entre em um fluxo mais visual, limpo e pronto para operar como produto.</h1>
-            <p class="auth-hero__text">Acesse o catálogo para publicar descobertas, revisar registros e navegar por um feed com cara de aplicativo moderno.</p>
+            <span class="auth-hero__eyebrow">Comunidade científica colaborativa</span>
+            <h1 class="auth-hero__title">Acesse uma rede que une tecnologia, pesquisa e preservação aquática.</h1>
+            <p class="auth-hero__text">Entre para consultar espécies, publicar observações de campo e fortalecer uma base acadêmica dedicada à biodiversidade brasileira.</p>
             <ul class="auth-hero__list">
-                <li><i class="bi bi-stars"></i><span>Experiência visual mais refinada</span></li>
-                <li><i class="bi bi-grid-1x2"></i><span>Feed organizado em cards</span></li>
-                <li><i class="bi bi-shield-check"></i><span>Controle por conta autenticada</span></li>
+                <li><i class="bi bi-stars"></i><span>Navegação pensada para consulta rápida em campo</span></li>
+                <li><i class="bi bi-grid-1x2"></i><span>Registros organizados com leitura clara e contexto ambiental</span></li>
+                <li><i class="bi bi-shield-check"></i><span>Acesso autenticado para uma colaboração mais confiável</span></li>
             </ul>
             <div class="auth-hero__metrics">
                 <div class="auth-metric">
-                    <strong>UX</strong>
-                    <span>Mais clara</span>
+                    <strong>Pesquisa</strong>
+                    <span>Mais contextual</span>
                 </div>
                 <div class="auth-metric">
-                    <strong>Feed</strong>
-                    <span>Mais visual</span>
+                    <strong>Rede</strong>
+                    <span>Mais colaborativa</span>
                 </div>
             </div>
         </div>
@@ -32,31 +32,31 @@
         <div class="auth-form-wrap">
             <div class="section-heading section-heading--compact">
                 <div>
-                    <p class="section-heading__eyebrow">Acesso</p>
-                    <h2 class="section-heading__title">Entrar</h2>
+                    <p class="section-heading__eyebrow">Acesso seguro</p>
+                    <h2 class="section-heading__title">Entrar na plataforma</h2>
                 </div>
-                <span class="auth-form__badge"><i class="bi bi-lock"></i> Sessão segura</span>
+                <span class="auth-form__badge"><i class="bi bi-lock"></i> Ambiente protegido</span>
             </div>
 
             <form method="post" class="app-form">
                 <div class="app-form__field">
                     <label for="email" class="form-label">E-mail</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="seuemail@dominio.com" required>
                 </div>
 
                 <div class="app-form__field">
                     <label for="senha" class="form-label">Senha</label>
-                    <input type="password" class="form-control" id="senha" name="senha" required>
+                    <input type="password" class="form-control" id="senha" name="senha" placeholder="Digite sua senha de acesso" required>
                 </div>
 
                 <div class="app-form__actions app-form__actions--stack">
-                    <button type="submit" class="app-button"><i class="bi bi-box-arrow-in-right"></i><span>Entrar</span></button>
+                    <button type="submit" class="app-button"><i class="bi bi-box-arrow-in-right"></i><span>Acessar plataforma</span></button>
                 </div>
             </form>
 
             <p class="auth-form__footer">
-                Não tem conta?
-                <a href="{{ url_for('registrar') }}">Crie uma conta</a>
+                Ainda não participa da plataforma?
+                <a href="{{ url_for('registrar') }}">Crie seu acesso</a>
             </p>
         </div>
     </div>

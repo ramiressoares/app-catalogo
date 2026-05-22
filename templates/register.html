@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 
-{% block title %}Registrar{% endblock %}
+{% block title %}FishCatalog | Cadastro{% endblock %}
 {% block page_id %}register{% endblock %}
 
 {% block content %}
 <section class="auth-layout auth-layout--register">
     <div class="auth-layout__panel auth-layout__panel--intro">
         <div class="auth-hero">
-            <span class="auth-hero__eyebrow">Crie seu acesso</span>
-            <h1 class="auth-hero__title">Monte seu perfil para publicar registros com a mesma qualidade visual do catálogo.</h1>
-            <p class="auth-hero__text">Cadastre-se para adicionar espécies, editar seus próprios registros e participar de um fluxo mais consistente, com aparência de produto real.</p>
+            <span class="auth-hero__eyebrow">Participação colaborativa</span>
+            <h1 class="auth-hero__title">Crie seu perfil e contribua com registros que valorizam espécies, territórios e conhecimento ambiental.</h1>
+            <p class="auth-hero__text">Seu cadastro permite publicar observações, acompanhar discussões e fortalecer uma base acadêmica voltada à biodiversidade aquática.</p>
             <div class="auth-hero__metrics">
                 <div class="auth-metric">
-                    <strong>Conta</strong>
-                    <span>Em minutos</span>
+                    <strong>Perfil</strong>
+                    <span>Pronto para colaborar</span>
                 </div>
                 <div class="auth-metric">
-                    <strong>Cadastro</strong>
-                    <span>Sem ruído</span>
+                    <strong>Rede</strong>
+                    <span>Pesquisa compartilhada</span>
                 </div>
             </div>
         </div>
@@ -27,36 +27,36 @@
         <div class="auth-form-wrap">
             <div class="section-heading section-heading--compact">
                 <div>
-                    <p class="section-heading__eyebrow">Cadastro</p>
-                    <h1 class="section-heading__title">Criar conta</h1>
+                    <p class="section-heading__eyebrow">Identificação</p>
+                    <h1 class="section-heading__title">Criar acesso</h1>
                 </div>
-                <span class="auth-form__badge"><i class="bi bi-person-check"></i> Acesso ao feed</span>
+                <span class="auth-form__badge"><i class="bi bi-person-check"></i> Participação autorizada</span>
             </div>
 
             <form method="post" class="app-form">
                 <div class="app-form__field">
                     <label for="nome" class="form-label">Nome</label>
-                    <input type="text" class="form-control" id="nome" name="nome" required>
+                    <input type="text" class="form-control" id="nome" name="nome" placeholder="Como você deseja ser identificado" required>
                 </div>
 
                 <div class="app-form__field">
                     <label for="email" class="form-label">E-mail</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="seuemail@dominio.com" required>
                 </div>
 
                 <div class="app-form__field">
                     <label for="senha" class="form-label">Senha</label>
-                    <input type="password" class="form-control" id="senha" name="senha" required>
+                    <input type="password" class="form-control" id="senha" name="senha" placeholder="Defina uma senha segura" required>
                 </div>
 
                 <div class="app-form__actions app-form__actions--stack">
-                    <button type="submit" class="app-button"><i class="bi bi-person-plus"></i><span>Registrar</span></button>
+                    <button type="submit" class="app-button"><i class="bi bi-person-plus"></i><span>Concluir cadastro</span></button>
                 </div>
             </form>
 
             <p class="auth-form__footer">
-                Já possui conta?
-                <a href="{{ url_for('login') }}">Faça login</a>
+                Já possui acesso?
+                <a href="{{ url_for('login') }}">Entrar na plataforma</a>
             </p>
         </div>
     </div>

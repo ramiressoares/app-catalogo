@@ -1,35 +1,35 @@
 {% extends 'base.html' %}
 
-{% block title %}Adicionar Peixe{% endblock %}
+{% block title %}FishCatalog | Novo Registro{% endblock %}
 {% block page_id %}add-fish{% endblock %}
 
 {% block content %}
 <section class="publish-shell">
     <aside class="publish-aside surface-card">
-        <span class="publish-aside__eyebrow">Publicação guiada</span>
-        <h1 class="publish-aside__title">Crie um novo registro com aparência de aplicativo, não de formulário cru.</h1>
-        <p class="publish-aside__text">Organize a foto, os nomes e a origem do peixe em um fluxo mais claro, com boa leitura e melhor percepção de qualidade.</p>
+        <span class="publish-aside__eyebrow">Registro orientado</span>
+        <h1 class="publish-aside__title">Documente espécies com clareza científica e sensibilidade ambiental.</h1>
+        <p class="publish-aside__text">Organize imagem, nomenclatura e localidade em um fluxo pensado para pesquisa, educação ambiental e memória ecológica.</p>
 
         <div class="publish-aside__steps">
             <div class="publish-step">
                 <span class="publish-step__index">01</span>
                 <div>
-                    <strong>Envie a imagem</strong>
-                    <p>Escolha uma foto limpa para valorizar o card no catálogo.</p>
+                    <strong>Selecione a imagem</strong>
+                    <p>Uma boa imagem amplia a identificação e o valor educativo do registro.</p>
                 </div>
             </div>
             <div class="publish-step">
                 <span class="publish-step__index">02</span>
                 <div>
-                    <strong>Preencha os dados</strong>
-                    <p>Nome comum, científico, região e descrição em uma estrutura consistente.</p>
+                    <strong>Informe os dados</strong>
+                    <p>Inclua nome comum, nome científico, região e contexto da observação.</p>
                 </div>
             </div>
             <div class="publish-step">
                 <span class="publish-step__index">03</span>
                 <div>
-                    <strong>Publique no feed</strong>
-                    <p>O registro entra no catálogo com visual reforçado e leitura rápida.</p>
+                    <strong>Compartilhe no catálogo</strong>
+                    <p>Seu registro passa a integrar uma base colaborativa de consulta e conscientização.</p>
                 </div>
             </div>
         </div>
@@ -38,46 +38,46 @@
     <div class="publish-main surface-card form-surface">
         <div class="publish-header">
             <div>
-                <p class="section-heading__eyebrow">Novo registro</p>
-                <h2 class="publish-header__title">Adicionar peixe</h2>
+                <p class="section-heading__eyebrow">Nova publicação</p>
+                <h2 class="publish-header__title">Adicionar registro de espécie</h2>
             </div>
-            <span class="publish-header__badge"><i class="bi bi-stars"></i> Feed pronto para produção</span>
+            <span class="publish-header__badge"><i class="bi bi-stars"></i> Base pronta para consulta</span>
         </div>
 
         <form method="post" enctype="multipart/form-data" class="app-form app-form--two-columns">
             <div class="app-form__field app-form__field--full">
-                <label for="imagem" class="form-label">Foto</label>
+                <label for="imagem" class="form-label">Imagem do registro</label>
                 <label class="upload-field" for="imagem">
                     <input type="file" id="imagem" name="foto" accept="image/*" required>
                     <span class="upload-field__icon"><i class="bi bi-cloud-arrow-up"></i></span>
-                    <span class="upload-field__title" data-upload-label>Selecione uma imagem</span>
-                    <span class="upload-field__text">PNG, JPG, JPEG, GIF ou WEBP</span>
+                    <span class="upload-field__title" data-upload-label>Selecione a imagem do registro</span>
+                    <span class="upload-field__text">Formatos aceitos: PNG, JPG, JPEG, GIF e WEBP</span>
                 </label>
             </div>
 
             <div class="app-form__field">
                 <label for="nome_comum" class="form-label">Nome comum</label>
-                <input type="text" class="form-control" id="nome_comum" name="nome_comum" required>
+                <input type="text" class="form-control" id="nome_comum" name="nome_comum" placeholder="Ex.: Tambaqui" required>
             </div>
 
             <div class="app-form__field">
                 <label for="nome_cientifico" class="form-label">Nome científico</label>
-                <input type="text" class="form-control" id="nome_cientifico" name="nome_cientifico" required>
+                <input type="text" class="form-control" id="nome_cientifico" name="nome_cientifico" placeholder="Ex.: Colossoma macropomum" required>
             </div>
 
             <div class="app-form__field app-form__field--full">
-                <label for="regiao" class="form-label">Região</label>
-                <input type="text" class="form-control" id="regiao" name="regiao" required>
+                <label for="regiao" class="form-label">Região do registro</label>
+                <input type="text" class="form-control" id="regiao" name="regiao" placeholder="Ex.: Baixo São Francisco, AL" required>
             </div>
 
             <div class="app-form__field app-form__field--full">
-                <label for="descricao" class="form-label">Descrição</label>
-                <textarea class="form-control" id="descricao" name="descricao" rows="5" required></textarea>
+                <label for="descricao" class="form-label">Contexto ecológico</label>
+                <textarea class="form-control" id="descricao" name="descricao" rows="5" placeholder="Descreva características da espécie, contexto do ambiente, observações de campo ou informações educativas." required></textarea>
             </div>
 
             <div class="app-form__actions app-form__field--full">
-                <button type="submit" class="app-button"><i class="bi bi-check2-circle"></i><span>Salvar peixe</span></button>
-                <a href="{{ url_for('index') }}" class="app-button app-button--ghost"><i class="bi bi-arrow-left"></i><span>Cancelar</span></a>
+                <button type="submit" class="app-button"><i class="bi bi-check2-circle"></i><span>Publicar registro</span></button>
+                <a href="{{ url_for('index') }}" class="app-button app-button--ghost"><i class="bi bi-arrow-left"></i><span>Voltar ao catálogo</span></a>
             </div>
         </form>
     </div>

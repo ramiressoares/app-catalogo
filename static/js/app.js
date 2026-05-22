@@ -36,7 +36,7 @@
 
     if (uploadInput && uploadLabel) {
         uploadInput.addEventListener('change', function () {
-            var fileName = uploadInput.files && uploadInput.files[0] ? uploadInput.files[0].name : 'Selecione uma imagem';
+            var fileName = uploadInput.files && uploadInput.files[0] ? uploadInput.files[0].name : 'Selecione a imagem do registro';
             uploadLabel.textContent = fileName;
         });
     }
@@ -62,7 +62,7 @@
     if (modal && modalImage && closeButton && imageButtons.length) {
         function openModal(src, name) {
             modalImage.src = src;
-            modalImage.alt = 'Imagem ampliada de ' + name;
+            modalImage.alt = 'Imagem ampliada do registro de ' + name;
             modal.classList.add('is-open');
             modal.setAttribute('aria-hidden', 'false');
             document.body.classList.add('modal-open');
@@ -128,7 +128,7 @@
                     countEl.textContent = data.total;
                 }
                 if (labelEl) {
-                    labelEl.textContent = data.total === 1 ? 'curtida' : 'curtidas';
+                    labelEl.textContent = data.total === 1 ? 'apoio' : 'apoios';
                 }
             })
             .catch(function () {});
@@ -176,8 +176,8 @@
             '<form method="post" action="/peixes/' + peixeId + '/comentar" class="comment-reply-form" id="reply-' + comment.id + '" data-reply-form="' + comment.id + '" data-comment-form="' + peixeId + '" aria-hidden="true">' +
                 '<input type="hidden" name="parent_id" value="' + comment.id + '">' +
                 '<label for="reply_input_' + comment.id + '" class="visually-hidden">Resposta</label>' +
-                '<input type="text" id="reply_input_' + comment.id + '" name="comentario" class="form-control" maxlength="300" placeholder="Escreva uma resposta..." required>' +
-                '<button type="submit" class="app-button app-button--sm"><i class="bi bi-send"></i><span>Responder</span></button>' +
+                '<input type="text" id="reply_input_' + comment.id + '" name="comentario" class="form-control" maxlength="300" placeholder="Escreva uma resposta objetiva e respeitosa..." required>' +
+                '<button type="submit" class="app-button app-button--sm"><i class="bi bi-send"></i><span>Publicar</span></button>' +
             '</form>' +
             '<div class="comment-children" data-comment-children="' + comment.id + '"></div>';
 
@@ -268,7 +268,7 @@
 
         if (submitButton) {
             submitButton.disabled = true;
-            submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i><span>Enviando</span>';
+            submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i><span>Publicando...</span>';
         }
 
         var payload = 'comentario=' + encodeURIComponent(input.value.trim());
