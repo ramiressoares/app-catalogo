@@ -124,11 +124,15 @@ def init_db() -> None:
 				id SERIAL PRIMARY KEY,
 				peixe_id INTEGER,
 				usuario_id INTEGER,
+				parent_id INTEGER,
 				comentario TEXT,
 				data TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 			)
 			"""
 		)
+
+		# Compatibilidade com bases antigas sem suporte a resposta de comentarios.
+		conn.execute("ALTER TABLE comentarios ADD COLUMN IF NOT EXISTS parent_id INTEGER")
 
 		conn.execute(
 			"""
@@ -136,6 +140,16 @@ def init_db() -> None:
 				peixe_id INTEGER NOT NULL,
 				usuario_id INTEGER NOT NULL,
 				PRIMARY KEY (peixe_id, usuario_id)
+			)
+			"""
+		)
+
+		conn.execute(
+			"""
+			CREATE TABLE IF NOT EXISTS comentario_curtidas (
+				comentario_id INTEGER NOT NULL,
+				usuario_id INTEGER NOT NULL,
+				PRIMARY KEY (comentario_id, usuario_id)
 			)
 			"""
 		)
@@ -311,6 +325,101 @@ def format_data_postagem(data_postagem: Any) -> str:
 	return f"{post_date.day}/{post_date.month}/{post_date.year} h: {post_date:%H:%M}"
 
 
+def format_data_comentario(data_postagem: Any) -> str:
+	"""Formata data de comentario em um formato mais compacto para o feed."""
+	if isinstance(data_postagem, datetime):
+		post_date = data_postagem
+	else:
+		try:
+			post_date = datetime.fromisoformat(str(data_postagem).replace("Z", "+00:00")).replace(tzinfo=None)
+		except ValueError:
+			return str(data_postagem)
+
+	return f"{post_date.day:02d}/{post_date.month:02d} {post_date:%H:%M}"
+
+
+def build_comment_node(comment_row: Any, liked_by_user: set[int]) -> dict[str, Any]:
+	usuario_nome = (comment_row["usuario_nome"] or "Usuario").strip() if comment_row["usuario_nome"] else "Usuario"
+	avatar = usuario_nome[0].upper() if usuario_nome else "U"
+	return {
+		"id": comment_row["id"],
+		"parent_id": comment_row["parent_id"],
+		"usuario_nome": usuario_nome,
+		"avatar": avatar,
+		"comentario": comment_row["comentario"],
+		"data": format_data_comentario(comment_row["data"]),
+		"curtidas": comment_row["likes_total"] or 0,
+		"curtido": comment_row["id"] in liked_by_user,
+		"respostas": [],
+	}
+
+
+def load_comments_by_peixe(
+	conn: DBConnection,
+	peixe_ids: list[int],
+	current_user_id: Optional[int],
+) -> tuple[dict[int, list[dict[str, Any]]], dict[int, int]]:
+	if not peixe_ids:
+		return {}, {}
+
+	comments_rows = conn.execute(
+		"""
+		SELECT
+			c.id,
+			c.peixe_id,
+			c.parent_id,
+			c.comentario,
+			c.data,
+			u.nome AS usuario_nome,
+			COUNT(cc.usuario_id)::INTEGER AS likes_total
+		FROM comentarios c
+		JOIN usuarios u ON u.id = c.usuario_id
+		LEFT JOIN comentario_curtidas cc ON cc.comentario_id = c.id
+		WHERE c.peixe_id = ANY(%s)
+		GROUP BY c.id, c.peixe_id, c.parent_id, c.comentario, c.data, u.nome
+		ORDER BY c.data DESC
+		""",
+		(peixe_ids,),
+	).fetchall()
+
+	liked_by_user: set[int] = set()
+	if current_user_id:
+		liked_rows = conn.execute(
+			"""
+			SELECT comentario_id
+			FROM comentario_curtidas
+			WHERE usuario_id = ?
+			""",
+			(current_user_id,),
+		).fetchall()
+		liked_by_user = {row["comentario_id"] for row in liked_rows}
+
+	by_peixe: dict[int, list[dict[str, Any]]] = {}
+	totals: dict[int, int] = {}
+	nodes_by_id: dict[int, dict[str, Any]] = {}
+
+	for row in comments_rows:
+		node = build_comment_node(row, liked_by_user)
+		nodes_by_id[node["id"]] = node
+		peixe_id = row["peixe_id"]
+		totals[peixe_id] = totals.get(peixe_id, 0) + 1
+
+	for row in comments_rows:
+		node = nodes_by_id[row["id"]]
+		parent_id = row["parent_id"]
+		peixe_id = row["peixe_id"]
+
+		if parent_id and parent_id in nodes_by_id:
+			nodes_by_id[parent_id]["respostas"].append(node)
+			continue
+
+		if peixe_id not in by_peixe:
+			by_peixe[peixe_id] = []
+		by_peixe[peixe_id].append(node)
+
+	return by_peixe, totals
+
+
 def can_delete_peixe(current_user_id: int, peixe_user_id: int, data_postagem: str) -> bool:
 	if is_admin_user(current_user_id):
 		return True
@@ -387,6 +496,7 @@ def index():
 		regioes = conn.execute("SELECT DISTINCT regiao FROM peixes ORDER BY regiao").fetchall()
 		total_peixes = conn.execute("SELECT COUNT(*) FROM peixes").fetchone()[0]
 		total_pescadores = conn.execute("SELECT COUNT(DISTINCT usuario_id) FROM peixes").fetchone()[0]
+		peixe_ids = [row["id"] for row in peixes_db]
 
 		# Busca contagens de curtidas e quais o usuario logado curtiu
 		try:
@@ -406,6 +516,12 @@ def index():
 			curtidas_count = {}
 			curtidas_usuario = set()
 
+		try:
+			comentarios_por_peixe, comentarios_count = load_comments_by_peixe(conn, peixe_ids, current_user_id)
+		except Exception:
+			comentarios_por_peixe = {}
+			comentarios_count = {}
+
 	peixes = []
 
 	for peixe in peixes_db:
@@ -421,6 +537,8 @@ def index():
 		peixe_dict["data_postagem"] = format_data_postagem(data_postagem_raw)
 		peixe_dict["curtidas"] = curtidas_count.get(peixe_dict["id"], 0)
 		peixe_dict["curtido"] = peixe_dict["id"] in curtidas_usuario
+		peixe_dict["comentarios_total"] = comentarios_count.get(peixe_dict["id"], 0)
+		peixe_dict["comentarios_preview"] = comentarios_por_peixe.get(peixe_dict["id"], [])
 		peixes.append(peixe_dict)
 
 	return render_template(
@@ -658,6 +776,118 @@ def curtir_peixe(peixe_id: int):
 		).fetchone()[0]
 
 	return jsonify({"curtido": curtido, "total": total})
+
+
+@app.route("/peixes/<int:peixe_id>/comentar", methods=["POST"])
+@login_required
+def comentar_peixe(peixe_id: int):
+	"""Cria um comentario em um peixe e retorna JSON em chamadas assicronas."""
+	current_user_id = session.get("user_id")
+	comentario = request.form.get("comentario", "").strip()
+	parent_id_raw = request.form.get("parent_id", "").strip()
+	parent_id: Optional[int] = None
+	if parent_id_raw:
+		try:
+			parent_id = int(parent_id_raw)
+		except ValueError:
+			parent_id = None
+
+	if not comentario:
+		if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+			return jsonify({"error": "Comentario vazio."}), 400
+		flash("Escreva um comentario antes de enviar.", "warning")
+		return redirect(url_for("index"))
+
+	if len(comentario) > 300:
+		if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+			return jsonify({"error": "Comentario muito longo (maximo de 300 caracteres)."}), 400
+		flash("Comentario muito longo (maximo de 300 caracteres).", "warning")
+		return redirect(url_for("index"))
+
+	with get_db_connection() as conn:
+		peixe = conn.execute("SELECT id FROM peixes WHERE id = ?", (peixe_id,)).fetchone()
+		if not peixe:
+			if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+				return jsonify({"error": "Peixe nao encontrado."}), 404
+			flash("Peixe nao encontrado.", "danger")
+			return redirect(url_for("index"))
+
+		comment_row = conn.execute(
+			"""
+			INSERT INTO comentarios (peixe_id, usuario_id, parent_id, comentario)
+			VALUES (?, ?, ?, ?)
+			RETURNING id, parent_id, comentario, data
+			""",
+			(peixe_id, current_user_id, parent_id, comentario),
+		).fetchone()
+
+		total = conn.execute(
+			"SELECT COUNT(*) FROM comentarios WHERE peixe_id = ?",
+			(peixe_id,),
+		).fetchone()[0]
+		conn.commit()
+
+	if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+		return jsonify(
+			{
+				"ok": True,
+				"total": total,
+				"comentario": {
+					"id": comment_row["id"],
+					"parent_id": comment_row["parent_id"],
+					"usuario_nome": session.get("user_nome", "Voce"),
+					"avatar": (session.get("user_nome", "V") or "V")[0].upper(),
+					"texto": comment_row["comentario"],
+					"data": format_data_comentario(comment_row["data"]),
+					"curtidas": 0,
+					"curtido": False,
+				},
+			}
+		)
+
+	flash("Comentario publicado.", "success")
+	return redirect(url_for("index"))
+
+
+@app.route("/comentarios/<int:comentario_id>/curtir", methods=["POST"])
+@login_required
+def curtir_comentario(comentario_id: int):
+	"""Alterna curtida em um comentario e retorna o total atualizado."""
+	current_user_id = session.get("user_id")
+
+	with get_db_connection() as conn:
+		comentario = conn.execute(
+			"SELECT id FROM comentarios WHERE id = ?",
+			(comentario_id,),
+		).fetchone()
+		if not comentario:
+			return jsonify({"error": "Comentario nao encontrado."}), 404
+
+		ja_curtiu = conn.execute(
+			"SELECT 1 FROM comentario_curtidas WHERE comentario_id = ? AND usuario_id = ?",
+			(comentario_id, current_user_id),
+		).fetchone()
+
+		if ja_curtiu:
+			conn.execute(
+				"DELETE FROM comentario_curtidas WHERE comentario_id = ? AND usuario_id = ?",
+				(comentario_id, current_user_id),
+			)
+			curtido = False
+		else:
+			conn.execute(
+				"INSERT INTO comentario_curtidas (comentario_id, usuario_id) VALUES (?, ?)",
+				(comentario_id, current_user_id),
+			)
+			curtido = True
+
+		conn.commit()
+		total = conn.execute(
+			"SELECT COUNT(*) FROM comentario_curtidas WHERE comentario_id = ?",
+			(comentario_id,),
+		).fetchone()[0]
+
+	return jsonify({"ok": True, "curtido": curtido, "total": total})
 
 
 init_db()

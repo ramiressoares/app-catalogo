@@ -1,21 +1,102 @@
 {% extends 'base.html' %}
 
 {% block title %}Catálogo de Peixes{% endblock %}
+{% block page_id %}index{% endblock %}
 
 {% block content %}
+{% macro render_comment_tree(comments, peixe_id, depth=0) %}
+    {% for comentario in comments recursive %}
+        <article class="comment-item {% if loop.depth0 > 0 %}comment-item--reply{% endif %}" data-comment-id="{{ comentario['id'] }}">
+            <div class="comment-item__head">
+                <span class="comment-avatar">{{ comentario['avatar'] }}</span>
+                <strong>{{ comentario['usuario_nome'] }}</strong>
+                <span>{{ comentario['data'] }}</span>
+            </div>
+
+            <p>{{ comentario['comentario'] }}</p>
+
+            <div class="comment-item__actions">
+                <button type="button"
+                        class="comment-like-btn {% if comentario['curtido'] %}is-active{% endif %}"
+                        data-comment-like="{{ comentario['id'] }}"
+                        aria-pressed="{{ 'true' if comentario['curtido'] else 'false' }}"
+                        aria-label="Curtir comentário de {{ comentario['usuario_nome'] }}">
+                    <i class="bi {% if comentario['curtido'] %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                    <span data-comment-like-count="{{ comentario['id'] }}">{{ comentario['curtidas'] }}</span>
+                </button>
+
+                <button type="button"
+                        class="comment-reply-btn"
+                        data-reply-toggle="{{ comentario['id'] }}"
+                        aria-expanded="false"
+                        aria-controls="reply-{{ comentario['id'] }}">
+                    <i class="bi bi-reply"></i>
+                    <span>Responder</span>
+                </button>
+            </div>
+
+            <form method="post"
+                  action="{{ url_for('comentar_peixe', peixe_id=peixe_id) }}"
+                  class="comment-reply-form"
+                  id="reply-{{ comentario['id'] }}"
+                  data-reply-form="{{ comentario['id'] }}"
+                  data-comment-form="{{ peixe_id }}"
+                  aria-hidden="true">
+                <input type="hidden" name="parent_id" value="{{ comentario['id'] }}">
+                <label for="reply_input_{{ comentario['id'] }}" class="visually-hidden">Resposta</label>
+                <input
+                    type="text"
+                    id="reply_input_{{ comentario['id'] }}"
+                    name="comentario"
+                    class="form-control"
+                    maxlength="300"
+                    placeholder="Escreva uma resposta..."
+                    required>
+                <button type="submit" class="app-button app-button--sm">
+                    <i class="bi bi-send"></i>
+                    <span>Responder</span>
+                </button>
+            </form>
+
+            {% if comentario['respostas'] %}
+                <div class="comment-children" data-comment-children="{{ comentario['id'] }}">
+                    {{ loop(comentario['respostas']) }}
+                </div>
+            {% else %}
+                <div class="comment-children" data-comment-children="{{ comentario['id'] }}"></div>
+            {% endif %}
+        </article>
+    {% endfor %}
+{% endmacro %}
+
 <div class="gram-layout">
 
-    <!-- Feed principal -->
     <div class="gram-feed">
+        <section class="feed-hero surface-card">
+            <div>
+                <span class="feed-hero__eyebrow">FishCatalog Mobile</span>
+                <h1 class="feed-hero__title">Feed aquático com cara de aplicativo premium</h1>
+                <p class="feed-hero__text">Explore espécies em um fluxo visual mais limpo, com leitura rápida, ações diretas e foco total em experiência mobile.</p>
+            </div>
+            <div class="feed-hero__meta">
+                <div class="feed-metric">
+                    <strong>{{ total_peixes }}</strong>
+                    <span>registros</span>
+                </div>
+                <div class="feed-metric">
+                    <strong>{{ total_pescadores }}</strong>
+                    <span>autores</span>
+                </div>
+            </div>
+        </section>
 
-        <!-- Barra de filtros -->
         <div class="gram-filters surface-card">
             <form method="get" class="filter-form filter-form--inline">
                 <div class="filter-form__field">
                     <label for="q" class="form-label">Buscar</label>
                     <div class="input-shell">
                         <i class="bi bi-search"></i>
-                        <input type="text" class="form-control" id="q" name="q" placeholder="Nome do peixe…" value="{{ q }}">
+                        <input type="text" class="form-control" id="q" name="q" placeholder="Ex.: Tilápia, Tambaqui..." value="{{ q }}">
                     </div>
                 </div>
                 <div class="filter-form__field">
@@ -37,14 +118,13 @@
         </div>
 
         {% if peixes %}
-            <div id="fishGrid">
+            <div id="fishGrid" class="feed-list">
                 {% for peixe in peixes %}
-                    <article class="post">
+                    <article class="post" id="post-{{ peixe['id'] }}">
 
-                        <!-- ① Cabeçalho: avatar · autor · região · data -->
                         <div class="post-header">
                             <span class="post-avatar">
-                                <i class="bi bi-person-fill"></i>
+                                {{ peixe['usuario_nome'][0]|upper if peixe['usuario_nome'] else 'U' }}
                             </span>
                             <div class="post-meta">
                                 <strong class="post-meta__name">{{ peixe['usuario_nome'] }}</strong>
@@ -57,7 +137,6 @@
                             <time class="post-time" title="{{ peixe['data_postagem'] }}">{{ peixe['data_postagem'] }}</time>
                         </div>
 
-                        <!-- ② Imagem quadrada 1:1 -->
                         <div class="post-media">
                             {% if peixe['imagem_src'] %}
                                 <button type="button"
@@ -66,7 +145,7 @@
                                         data-fish-name="{{ peixe['nome_comum'] }}"
                                         aria-label="Ampliar imagem de {{ peixe['nome_comum'] }}">
                                     <img src="{{ peixe['imagem_src'] }}"
-                                         class="fish-image"
+                                         class="fish-image fish-image--loading"
                                          alt="Foto de {{ peixe['nome_comum'] }}"
                                          loading="lazy">
                                 </button>
@@ -78,7 +157,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- ③ Legenda -->
                         <div class="post-caption">
                             <div class="post-species">
                                 <h2 class="post-species__name">{{ peixe['nome_comum'] }}</h2>
@@ -89,8 +167,7 @@
                             {% endif %}
                         </div>
 
-                        <!-- ④ Barra de curtidas -->
-                        <div class="post-likes">
+                        <div class="post-actions">
                             <button type="button"
                                     class="like-btn {% if peixe['curtido'] %}like-btn--active{% endif %}"
                                     data-peixe-id="{{ peixe['id'] }}"
@@ -98,11 +175,53 @@
                                     aria-pressed="{{ 'true' if peixe['curtido'] else 'false' }}">
                                 <i class="bi {% if peixe['curtido'] %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
                             </button>
+
+                            <button type="button"
+                                    class="comment-btn"
+                                    data-comment-toggle="{{ peixe['id'] }}"
+                                    aria-expanded="false"
+                                    aria-controls="comments-{{ peixe['id'] }}"
+                                    aria-label="Abrir comentários de {{ peixe['nome_comum'] }}">
+                                <i class="bi bi-chat-dots"></i>
+                            </button>
+
+                            <span class="post-actions__spacer"></span>
+
                             <span class="like-count" data-peixe-id="{{ peixe['id'] }}">{{ peixe['curtidas'] }}</span>
-                            <span class="like-label">{{ 'curtida' if peixe['curtidas'] == 1 else 'curtidas' }}</span>
+                            <span class="like-label" data-like-label="{{ peixe['id'] }}">{{ 'curtida' if peixe['curtidas'] == 1 else 'curtidas' }}</span>
+
+                            <i class="bi bi-dot post-dot"></i>
+
+                            <span class="comment-count" data-comment-count="{{ peixe['id'] }}">{{ peixe['comentarios_total'] }}</span>
+                            <span class="comment-label" data-comment-label="{{ peixe['id'] }}">{{ 'comentário' if peixe['comentarios_total'] == 1 else 'comentários' }}</span>
                         </div>
 
-                        <!-- ④ Rodapé com ações (só renderiza se houver conteúdo) -->
+                        <section class="post-comments" id="comments-{{ peixe['id'] }}" aria-hidden="true">
+                            <div class="post-comments__list" data-comment-list="{{ peixe['id'] }}">
+                                {% if peixe['comentarios_preview'] %}
+                                    {{ render_comment_tree(peixe['comentarios_preview'], peixe['id']) }}
+                                {% else %}
+                                    <p class="post-comments__empty" data-comment-empty="{{ peixe['id'] }}">Nenhum comentário ainda. Seja o primeiro a comentar.</p>
+                                {% endif %}
+                            </div>
+
+                            <form method="post" action="{{ url_for('comentar_peixe', peixe_id=peixe['id']) }}" class="comment-form" data-comment-form="{{ peixe['id'] }}">
+                                <label for="comentario_{{ peixe['id'] }}" class="visually-hidden">Comentário</label>
+                                <input
+                                    type="text"
+                                    id="comentario_{{ peixe['id'] }}"
+                                    name="comentario"
+                                    class="form-control"
+                                    maxlength="300"
+                                    placeholder="Escreva um comentário rápido..."
+                                    required>
+                                <button type="submit" class="app-button app-button--sm">
+                                    <i class="bi bi-send"></i>
+                                    <span>Enviar</span>
+                                </button>
+                            </form>
+                        </section>
+
                         {% if peixe['is_owner'] or peixe['can_delete'] or peixe['delete_window_expired'] %}
                             <div class="post-footer">
 
@@ -164,7 +283,6 @@
 
     </div><!-- /gram-feed -->
 
-    <!-- Sidebar direita -->
     <aside class="gram-sidebar">
 
         <div class="gram-about surface-card">
@@ -196,7 +314,7 @@
             <a href="{{ url_for('login') }}" class="app-button app-button--block"><i class="bi bi-box-arrow-in-right"></i><span>Entrar para publicar</span></a>
         {% endif %}
 
-    </aside><!-- /gram-sidebar -->
+    </aside>
 
-</div><!-- /gram-layout -->
+</div>
 {% endblock %}
