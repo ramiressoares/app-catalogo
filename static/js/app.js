@@ -73,8 +73,8 @@
 
             try {
                 var stored = localStorage.getItem(storageKey);
-                if (stored !== null) {
-                    value = Math.max(toNumber(stored), fallback);
+                if (fallback <= 0 && stored !== null) {
+                    value = toNumber(stored);
                 }
             } catch (error) {
                 value = fallback;

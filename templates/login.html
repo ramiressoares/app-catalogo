@@ -4,6 +4,10 @@
 {% block page_id %}login{% endblock %}
 
 {% block content %}
+{% set stats = login_stats if login_stats is defined else {} %}
+{% set species_total = stats.get('species', 0) %}
+{% set collaborators_total = stats.get('collaborators', 0) %}
+{% set regions_total = stats.get('regions', 0) %}
 <section class="login-premium" aria-labelledby="loginPremiumTitle">
     <article class="login-premium__hero" aria-label="Introdução da plataforma">
         <div class="login-premium__hero-head">
@@ -82,17 +86,17 @@
                 <div class="login-premium__stats-list">
                     <article class="community-stat">
                         <span class="community-stat__icon">🐟</span>
-                        <strong class="community-stat__value" data-login-stat="species" data-fallback="0">0</strong>
+                        <strong class="community-stat__value" data-login-stat="species" data-fallback="{{ species_total }}">{{ species_total }}</strong>
                         <span class="community-stat__label">Espécies cadastradas</span>
                     </article>
                     <article class="community-stat">
                         <span class="community-stat__icon">👤</span>
-                        <strong class="community-stat__value" data-login-stat="collaborators" data-fallback="0">0</strong>
+                        <strong class="community-stat__value" data-login-stat="collaborators" data-fallback="{{ collaborators_total }}">{{ collaborators_total }}</strong>
                         <span class="community-stat__label">Colaboradores ativos</span>
                     </article>
                     <article class="community-stat">
                         <span class="community-stat__icon">📍</span>
-                        <strong class="community-stat__value" data-login-stat="regions" data-fallback="0">0</strong>
+                        <strong class="community-stat__value" data-login-stat="regions" data-fallback="{{ regions_total }}">{{ regions_total }}</strong>
                         <span class="community-stat__label">Regiões documentadas</span>
                     </article>
                 </div>

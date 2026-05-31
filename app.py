@@ -604,7 +604,25 @@ def login():
 		flash("Acesso realizado com sucesso.", "success")
 		return redirect(next_url or url_for("index"))
 
-	return render_template("login.html")
+	with get_db_connection() as conn:
+		total_usuarios = conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]
+		total_especies = conn.execute("SELECT COUNT(*) FROM peixes").fetchone()[0]
+		total_regioes = conn.execute(
+			"""
+			SELECT COUNT(DISTINCT regiao)
+			FROM peixes
+			WHERE TRIM(COALESCE(regiao, '')) <> ''
+			"""
+		).fetchone()[0]
+
+	return render_template(
+		"login.html",
+		login_stats={
+			"collaborators": total_usuarios,
+			"species": total_especies,
+			"regions": total_regioes,
+		},
+	)
 
 
 @app.route("/logout")
