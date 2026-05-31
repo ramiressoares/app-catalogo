@@ -462,6 +462,13 @@ def index():
 	"""Pagina inicial com listagem geral, busca por nome e filtro por regiao."""
 	q = request.args.get("q", "").strip()
 	regiao = request.args.get("regiao", "").strip()
+	q_tokens = [token for token in q.split() if token]
+	norm_map_from = "áàãâäéèêëíìîïóòõôöúùûüçñ"
+	norm_map_to = "aaaaaeeeeiiiiooooouuuucn"
+	norm_nome_sql = f"translate(lower(COALESCE(p.nome, '')), '{norm_map_from}', '{norm_map_to}')"
+	norm_especie_sql = f"translate(lower(COALESCE(p.especie, '')), '{norm_map_from}', '{norm_map_to}')"
+	norm_term_sql = f"translate(lower(?), '{norm_map_from}', '{norm_map_to}')"
+	order_by_clause = " ORDER BY p.data_postagem DESC"
 
 	query = """
 	SELECT
@@ -480,14 +487,52 @@ def index():
 	params = []
 
 	if q:
-		query += " AND p.nome LIKE ?"
-		params.append(f"%{q}%")
+		query += f"""
+		AND (
+			p.nome ILIKE ?
+			OR p.especie ILIKE ?
+			OR {norm_nome_sql} LIKE {norm_term_sql}
+			OR {norm_especie_sql} LIKE {norm_term_sql}
+		)
+		"""
+		q_like = f"%{q}%"
+		params.extend([q_like, q_like, q_like, q_like])
+
+		for token in q_tokens:
+			token_like = f"%{token}%"
+			query += f"""
+			AND (
+				p.nome ILIKE ?
+				OR p.especie ILIKE ?
+				OR {norm_nome_sql} LIKE {norm_term_sql}
+				OR {norm_especie_sql} LIKE {norm_term_sql}
+			)
+			"""
+			params.extend([token_like, token_like, token_like, token_like])
+
+		relevance_terms = [
+			f"CASE WHEN {norm_nome_sql} = {norm_term_sql} THEN 120 ELSE 0 END",
+			f"CASE WHEN {norm_nome_sql} LIKE {norm_term_sql} THEN 80 ELSE 0 END",
+			f"CASE WHEN {norm_nome_sql} LIKE {norm_term_sql} THEN 55 ELSE 0 END",
+			f"CASE WHEN {norm_especie_sql} = {norm_term_sql} THEN 95 ELSE 0 END",
+			f"CASE WHEN {norm_especie_sql} LIKE {norm_term_sql} THEN 70 ELSE 0 END",
+			f"CASE WHEN {norm_especie_sql} LIKE {norm_term_sql} THEN 45 ELSE 0 END",
+		]
+		relevance_params = [q, f"{q}%", f"%{q}%", q, f"{q}%", f"%{q}%"]
+
+		for token in q_tokens:
+			relevance_terms.append(f"CASE WHEN {norm_nome_sql} LIKE {norm_term_sql} THEN 12 ELSE 0 END")
+			relevance_terms.append(f"CASE WHEN {norm_especie_sql} LIKE {norm_term_sql} THEN 10 ELSE 0 END")
+			relevance_params.extend([f"%{token}%", f"%{token}%"])
+
+		order_by_clause = f" ORDER BY ({' + '.join(relevance_terms)}) DESC, p.data_postagem DESC"
+		params.extend(relevance_params)
 
 	if regiao:
 		query += " AND p.regiao = ?"
 		params.append(regiao)
 
-	query += " ORDER BY p.data_postagem DESC"
+	query += order_by_clause
 
 	current_user_id = session.get("user_id")
 	current_user_is_admin = is_admin_user(current_user_id)

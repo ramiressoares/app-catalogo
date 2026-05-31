@@ -1294,8 +1294,9 @@ body[data-page="login"] .app-main {
     color: #fff;
     background:
         linear-gradient(180deg, rgba(7, 31, 58, 0.34) 0%, rgba(4, 20, 37, 0.76) 63%, rgba(3, 14, 28, 0.9) 100%),
+        radial-gradient(circle at 98% 100%, rgba(1, 8, 15, 0.95) 0%, rgba(1, 8, 15, 0.86) 18%, rgba(1, 8, 15, 0) 42%),
         radial-gradient(circle at 20% 18%, rgba(45, 168, 255, 0.18), transparent 42%),
-        url("https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+        url("../uploads/trairao.jpg") 34% center/cover no-repeat;
     box-shadow: 0 24px 54px rgba(6, 24, 42, 0.4);
     animation: rise-in var(--ease);
 }
