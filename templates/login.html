@@ -5,24 +5,23 @@
 
 {% block content %}
 <section class="login-premium" aria-labelledby="loginPremiumTitle">
-    <header class="login-premium__header">
-        <div class="login-premium__brand-mark" aria-hidden="true">
-            <i class="bi bi-water"></i>
-        </div>
-        <div>
-            <h1 id="loginPremiumTitle" class="login-premium__brand-title">FishCatalog</h1>
-            <p class="login-premium__brand-subtitle">Ciência cidadã para águas brasileiras</p>
-        </div>
-    </header>
-
     <article class="login-premium__hero" aria-label="Introdução da plataforma">
-        <p class="login-premium__kicker">Laboratório colaborativo</p>
-        <h2 class="login-premium__hero-title">Conhecer para preservar.</h2>
-        <p class="login-premium__hero-text">Registre espécies, compartilhe observações e contribua para a conservação da biodiversidade aquática brasileira.</p>
+        <div class="login-premium__hero-head">
+            <div class="login-premium__brand-mark" aria-hidden="true">
+                <i class="bi bi-water"></i>
+            </div>
+            <div>
+                <h1 id="loginPremiumTitle" class="login-premium__brand-title">FishCatalog</h1>
+                <p class="login-premium__brand-subtitle">Ciência cidadã para águas brasileiras</p>
+            </div>
+        </div>
+
+        <h2 class="login-premium__hero-title">Conhecer para <span>preservar.</span></h2>
+        <p class="login-premium__hero-text">Registre espécies, compartilhe observações e ajude a proteger a biodiversidade aquática do Brasil.</p>
         <ul class="login-premium__hero-tags" aria-label="Pilares da plataforma">
             <li>🐟 Biodiversidade</li>
             <li>📍 Observações de campo</li>
-            <li>👥 Comunidade colaborativa</li>
+            <li>👥 Comunidade ativa</li>
         </ul>
     </article>
 
@@ -38,17 +37,34 @@
 
                 <div class="app-form__field">
                     <label for="email" class="form-label">E-mail</label>
-                    <input type="email" class="form-control" id="email" name="email" placeholder="seuemail@dominio.com" autocomplete="email" required>
+                    <div class="login-input-shell">
+                        <i class="bi bi-envelope"></i>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Seu e-mail" autocomplete="email" required>
+                    </div>
                 </div>
 
                 <div class="app-form__field">
                     <label for="senha" class="form-label">Senha</label>
-                    <input type="password" class="form-control" id="senha" name="senha" placeholder="Digite sua senha" autocomplete="current-password" required>
+                    <div class="login-input-shell">
+                        <i class="bi bi-lock"></i>
+                        <input type="password" class="form-control" id="senha" name="senha" placeholder="Sua senha" autocomplete="current-password" required>
+                        <button type="button" class="login-password-toggle" data-password-toggle="#senha" aria-label="Mostrar ou ocultar senha" aria-pressed="false">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="login-premium__meta-row" aria-label="Ações auxiliares">
+                    <label class="login-premium__remember">
+                        <input type="checkbox" name="remember_ui" value="1">
+                        <span>Lembrar-me</span>
+                    </label>
+                    <button type="button" class="login-premium__forgot">Esqueci minha senha</button>
                 </div>
 
                 <div class="app-form__actions app-form__actions--stack">
                     <button type="submit" class="app-button app-button--login-premium">
-                        <i class="bi bi-box-arrow-in-right"></i>
+                        <i class="bi bi-arrow-right"></i>
                         <span>Entrar na plataforma</span>
                     </button>
                 </div>
@@ -62,25 +78,29 @@
 
         <aside class="login-premium__insights" aria-label="Informações institucionais">
             <section class="login-premium__stats surface-card" aria-labelledby="communityTitle">
-                <h3 id="communityTitle" class="login-premium__stats-title">Nossa comunidade</h3>
+                <h3 id="communityTitle" class="login-premium__stats-title">Nossa comunidade já impactou</h3>
                 <div class="login-premium__stats-list">
                     <article class="community-stat">
-                        <span class="community-stat__label">🐟 Espécies cadastradas</span>
+                        <span class="community-stat__icon">🐟</span>
                         <strong class="community-stat__value" data-login-stat="species" data-fallback="0">0</strong>
+                        <span class="community-stat__label">Espécies cadastradas</span>
                     </article>
                     <article class="community-stat">
-                        <span class="community-stat__label">👤 Colaboradores</span>
+                        <span class="community-stat__icon">👤</span>
                         <strong class="community-stat__value" data-login-stat="collaborators" data-fallback="0">0</strong>
+                        <span class="community-stat__label">Colaboradores ativos</span>
                     </article>
                     <article class="community-stat">
-                        <span class="community-stat__label">📍 Regiões documentadas</span>
+                        <span class="community-stat__icon">📍</span>
                         <strong class="community-stat__value" data-login-stat="regions" data-fallback="0">0</strong>
+                        <span class="community-stat__label">Regiões documentadas</span>
                     </article>
                 </div>
             </section>
 
             <section class="login-premium__quote surface-card" aria-label="Mensagem institucional">
-                <p>Conhecer as espécies é o primeiro passo para preservá-las.</p>
+                <p>“Conhecer as espécies é o primeiro passo para preservá-las.”</p>
+                <small>Ciência, colaboração e natureza.</small>
             </section>
 
             <footer class="login-premium__footer">

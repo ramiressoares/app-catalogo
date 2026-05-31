@@ -87,6 +87,26 @@
     saveCommunityStatsLocally();
     hydrateLoginStats();
 
+    document.querySelectorAll('[data-password-toggle]').forEach(function (toggleButton) {
+        toggleButton.addEventListener('click', function () {
+            var targetSelector = toggleButton.getAttribute('data-password-toggle');
+            var passwordInput = targetSelector ? document.querySelector(targetSelector) : null;
+            var icon = toggleButton.querySelector('i');
+
+            if (!passwordInput) {
+                return;
+            }
+
+            var showingPassword = passwordInput.type === 'text';
+            passwordInput.type = showingPassword ? 'password' : 'text';
+            toggleButton.setAttribute('aria-pressed', showingPassword ? 'false' : 'true');
+
+            if (icon) {
+                icon.className = showingPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+            }
+        });
+    });
+
     alerts.forEach(function (alertElement) {
         var timeout = Number(alertElement.getAttribute('data-auto-dismiss')) || 3000;
 
