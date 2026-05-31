@@ -8,6 +8,84 @@
     var imageButtons = document.querySelectorAll('.fish-image-button');
     var uploadInput = document.getElementById('imagem');
     var uploadLabel = document.querySelector('[data-upload-label]');
+    var loginStats = document.querySelectorAll('[data-login-stat]');
+
+    function toNumber(value) {
+        var parsed = Number(String(value || '').replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function saveCommunityStatsLocally() {
+        var metricNumbers = document.querySelectorAll('.feed-hero__meta .feed-metric strong');
+        var regionSelect = document.getElementById('regiao');
+
+        if (!metricNumbers.length) {
+            return;
+        }
+
+        var species = metricNumbers[0] ? toNumber(metricNumbers[0].textContent) : 0;
+        var collaborators = metricNumbers[1] ? toNumber(metricNumbers[1].textContent) : 0;
+        var regions = regionSelect ? Math.max((regionSelect.options || []).length - 1, 0) : 0;
+
+        try {
+            localStorage.setItem('fishcatalog_stat_species', String(species));
+            localStorage.setItem('fishcatalog_stat_collaborators', String(collaborators));
+            localStorage.setItem('fishcatalog_stat_regions', String(regions));
+        } catch (error) {
+            // Ignora falhas de armazenamento local para manter o fluxo funcional.
+        }
+    }
+
+    function animateCounter(targetElement, finalValue) {
+        var startValue = 0;
+        var duration = 520;
+        var startTime = null;
+
+        function step(timestamp) {
+            if (!startTime) {
+                startTime = timestamp;
+            }
+
+            var progress = Math.min((timestamp - startTime) / duration, 1);
+            var eased = 1 - Math.pow(1 - progress, 3);
+            var current = Math.floor(startValue + (finalValue - startValue) * eased);
+
+            targetElement.textContent = current.toLocaleString('pt-BR');
+
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        }
+
+        window.requestAnimationFrame(step);
+    }
+
+    function hydrateLoginStats() {
+        if (!loginStats.length) {
+            return;
+        }
+
+        loginStats.forEach(function (statElement) {
+            var type = statElement.getAttribute('data-login-stat');
+            var fallback = toNumber(statElement.getAttribute('data-fallback'));
+            var storageKey = 'fishcatalog_stat_' + type;
+            var value = fallback;
+
+            try {
+                var stored = localStorage.getItem(storageKey);
+                if (stored !== null) {
+                    value = Math.max(toNumber(stored), fallback);
+                }
+            } catch (error) {
+                value = fallback;
+            }
+
+            animateCounter(statElement, value);
+        });
+    }
+
+    saveCommunityStatsLocally();
+    hydrateLoginStats();
 
     alerts.forEach(function (alertElement) {
         var timeout = Number(alertElement.getAttribute('data-auto-dismiss')) || 3000;

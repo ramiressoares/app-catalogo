@@ -4,63 +4,89 @@
 {% block page_id %}login{% endblock %}
 
 {% block content %}
-<section class="auth-layout">
-    <div class="auth-layout__panel auth-layout__panel--intro">
-        <div class="auth-hero">
-            <span class="auth-hero__eyebrow">Comunidade científica colaborativa</span>
-            <h1 class="auth-hero__title">Acesse uma rede que une tecnologia, pesquisa e preservação aquática.</h1>
-            <p class="auth-hero__text">Entre para consultar espécies, publicar observações de campo e fortalecer uma base acadêmica dedicada à biodiversidade brasileira.</p>
-            <ul class="auth-hero__list">
-                <li><i class="bi bi-stars"></i><span>Navegação pensada para consulta rápida em campo</span></li>
-                <li><i class="bi bi-grid-1x2"></i><span>Registros organizados com leitura clara e contexto ambiental</span></li>
-                <li><i class="bi bi-shield-check"></i><span>Acesso autenticado para uma colaboração mais confiável</span></li>
-            </ul>
-            <div class="auth-hero__metrics">
-                <div class="auth-metric">
-                    <strong>Pesquisa</strong>
-                    <span>Mais contextual</span>
-                </div>
-                <div class="auth-metric">
-                    <strong>Rede</strong>
-                    <span>Mais colaborativa</span>
-                </div>
-            </div>
+<section class="login-premium" aria-labelledby="loginPremiumTitle">
+    <header class="login-premium__header">
+        <div class="login-premium__brand-mark" aria-hidden="true">
+            <i class="bi bi-water"></i>
         </div>
-    </div>
+        <div>
+            <h1 id="loginPremiumTitle" class="login-premium__brand-title">FishCatalog</h1>
+            <p class="login-premium__brand-subtitle">Ciência cidadã para águas brasileiras</p>
+        </div>
+    </header>
 
-    <div class="auth-layout__panel auth-layout__panel--form surface-card">
-        <div class="auth-form-wrap">
-            <div class="section-heading section-heading--compact">
-                <div>
-                    <p class="section-heading__eyebrow">Acesso seguro</p>
-                    <h2 class="section-heading__title">Entrar na plataforma</h2>
-                </div>
-                <span class="auth-form__badge"><i class="bi bi-lock"></i> Ambiente protegido</span>
+    <article class="login-premium__hero" aria-label="Introdução da plataforma">
+        <p class="login-premium__kicker">Laboratório colaborativo</p>
+        <h2 class="login-premium__hero-title">Conhecer para preservar.</h2>
+        <p class="login-premium__hero-text">Registre espécies, compartilhe observações e contribua para a conservação da biodiversidade aquática brasileira.</p>
+        <ul class="login-premium__hero-tags" aria-label="Pilares da plataforma">
+            <li>🐟 Biodiversidade</li>
+            <li>📍 Observações de campo</li>
+            <li>👥 Comunidade colaborativa</li>
+        </ul>
+    </article>
+
+    <div class="login-premium__grid">
+        <article class="login-premium__panel surface-card" aria-label="Formulário de acesso">
+            <div class="login-premium__panel-header">
+                <h3 class="login-premium__panel-title">Acesse sua conta</h3>
+                <p class="login-premium__panel-subtitle">Ambiente seguro e colaborativo</p>
             </div>
 
-            <form method="post" class="app-form">
+            <form method="post" class="app-form app-form--login-premium">
                 <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
 
                 <div class="app-form__field">
                     <label for="email" class="form-label">E-mail</label>
-                    <input type="email" class="form-control" id="email" name="email" placeholder="seuemail@dominio.com" required>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="seuemail@dominio.com" autocomplete="email" required>
                 </div>
 
                 <div class="app-form__field">
                     <label for="senha" class="form-label">Senha</label>
-                    <input type="password" class="form-control" id="senha" name="senha" placeholder="Digite sua senha de acesso" required>
+                    <input type="password" class="form-control" id="senha" name="senha" placeholder="Digite sua senha" autocomplete="current-password" required>
                 </div>
 
                 <div class="app-form__actions app-form__actions--stack">
-                    <button type="submit" class="app-button"><i class="bi bi-box-arrow-in-right"></i><span>Acessar plataforma</span></button>
+                    <button type="submit" class="app-button app-button--login-premium">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Entrar na plataforma</span>
+                    </button>
                 </div>
             </form>
 
-            <p class="auth-form__footer">
+            <p class="auth-form__footer login-premium__register-link">
                 Ainda não participa da plataforma?
                 <a href="{{ url_for('registrar') }}">Crie seu acesso</a>
             </p>
-        </div>
+        </article>
+
+        <aside class="login-premium__insights" aria-label="Informações institucionais">
+            <section class="login-premium__stats surface-card" aria-labelledby="communityTitle">
+                <h3 id="communityTitle" class="login-premium__stats-title">Nossa comunidade</h3>
+                <div class="login-premium__stats-list">
+                    <article class="community-stat">
+                        <span class="community-stat__label">🐟 Espécies cadastradas</span>
+                        <strong class="community-stat__value" data-login-stat="species" data-fallback="0">0</strong>
+                    </article>
+                    <article class="community-stat">
+                        <span class="community-stat__label">👤 Colaboradores</span>
+                        <strong class="community-stat__value" data-login-stat="collaborators" data-fallback="0">0</strong>
+                    </article>
+                    <article class="community-stat">
+                        <span class="community-stat__label">📍 Regiões documentadas</span>
+                        <strong class="community-stat__value" data-login-stat="regions" data-fallback="0">0</strong>
+                    </article>
+                </div>
+            </section>
+
+            <section class="login-premium__quote surface-card" aria-label="Mensagem institucional">
+                <p>Conhecer as espécies é o primeiro passo para preservá-las.</p>
+            </section>
+
+            <footer class="login-premium__footer">
+                FishCatalog — Plataforma colaborativa para catalogação e valorização da biodiversidade aquática.
+            </footer>
+        </aside>
     </div>
 </section>
 {% endblock %}
