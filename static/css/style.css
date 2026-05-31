@@ -1294,9 +1294,9 @@ body[data-page="login"] .app-main {
     color: #fff;
     background:
         linear-gradient(180deg, rgba(7, 31, 58, 0.34) 0%, rgba(4, 20, 37, 0.76) 63%, rgba(3, 14, 28, 0.9) 100%),
-        radial-gradient(circle at 98% 100%, rgba(1, 8, 15, 0.95) 0%, rgba(1, 8, 15, 0.86) 18%, rgba(1, 8, 15, 0) 42%),
+        radial-gradient(circle at 99% 100%, rgba(1, 8, 15, 0.72) 0%, rgba(1, 8, 15, 0.62) 16%, rgba(1, 8, 15, 0) 40%),
         radial-gradient(circle at 20% 18%, rgba(45, 168, 255, 0.18), transparent 42%),
-        url("../uploads/trairao.jpg") 34% center/cover no-repeat;
+        url("../uploads/trairao.jpg") 72% center/cover no-repeat;
     box-shadow: 0 24px 54px rgba(6, 24, 42, 0.4);
     animation: rise-in var(--ease);
 }
@@ -1839,6 +1839,7 @@ body.modal-open {
     .login-premium__hero {
         min-height: 520px;
         padding: 1.2rem 1.3rem 9rem;
+        background-position: center, center, center, 68% center;
     }
 
     .login-premium__hero-title {
@@ -1937,6 +1938,7 @@ body.modal-open {
     .login-premium__hero {
         min-height: 560px;
         padding-bottom: 9.5rem;
+        background-position: center, center, center, 64% center;
     }
 
     .login-premium__panel {
